@@ -1,3 +1,4 @@
+import random
 import sys
 import UI
 import cv2
@@ -5,22 +6,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QHBoxLayout, QMainWindow, QApplication
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QImage, QPixmap, QPainter
+from PyQt5.QtCore import Qt
 from PyQt5 import QtCore
 from time import sleep
 from my_thread import MyThread
 
 h = 480
-w = 400
+w = 550
 
 
 class ThreadFunc():
 	def __init__(self):
-		self.startX = 150
-		self.startY = 40
-		self.endX = 150
+		self.startX = w//2
+		self.startY = 50
+		self.endX = w//2
 		self.endY = 400
-		self.Interval = 80
+		self.Interval = 120
 
 		self.nowX = 0
 		self.nowY = 0
@@ -33,10 +35,10 @@ class ThreadFunc():
 			self.deep = np.random.randint(-10, 10, 1)[0]
 			sleep(1)
 
-	def get_msg_line(self):
+	def get_msg_xy(self):
 		return (self.startX, self.startY, self.endX, self.endY, self.Interval, self.nowX, self.nowY)
 
-	def get_msg_bar(self):
+	def get_msg_deep(self):
 		return self.deep
 
 	def get_msg_startXY(self):
@@ -53,8 +55,6 @@ class MyWindows(QWidget, UI.Ui_Form):
 	def __init__(self):
 		super().__init__()
 		# 注意：里面的控件对象也成为窗口对象的属性了
-		# self.ui = UI.Ui_Form()
-		# self.setupUi(self)
 		self.setupUi(self)
 
 		self.imgLine = np.zeros((h, w, 3), np.uint8)
@@ -70,24 +70,28 @@ class MyWindows(QWidget, UI.Ui_Form):
 		MyThread(self.__thread, (), name='ThreadFunc', daemon=True).start()
 		self.__timer.start(25)  # 25 ms 刷新一次
 
+		self.DeepList = []
+		self.NumList = []
+
 	def set_slot(self):
 		self.__timer.timeout.connect(self.update)
 
 	def leftWindow(self, img, startX, startY, endX, endY, Interval, nowX, nowY):
 		img[...] = 255
-		# BorderReminder = False
 		cv2.line(img, (startX, startY), (endX, endY), (0, 255, 0), 1)
 		cv2.line(img, (startX + Interval, startY), (endX + Interval, endY), (0, 0, 255), 3)
 		cv2.line(img, (endX - Interval, startY), (endX - Interval, endY), (0, 0, 255), 3)
 		cv2.circle(img, (nowX, nowY), 6, (255, 0, 0), -1)
-		cv2.circle(img, (380, 460), 12, (0, 255, 0), -1)  # BorderReminder 界内绿色
-
-		# 如果超出边界，BorderReminder红色
+		BorderReminderLedXY = (530, 460)   # 边界指示灯位置 界内绿色
+		BorderReminderTextXY = (230, 470)
+		cv2.circle(img, BorderReminderLedXY, 12, (0, 255, 0), -1)
+		self.BorderReminder.setText("   ")
+		# 如果超出边界，BorderReminder红色,并提示汉字信息
 		if nowX > (startX + Interval) or nowX < (startX - Interval):
-			BorderReminder = True
-			cv2.circle(img, (380, 460), 12, (0, 0, 255), -1)
+			cv2.circle(img, BorderReminderLedXY, 12, (0, 0, 255), -1)	 # 边界报警指示灯
+			self.BorderReminder.setText("！！即将超出边界！！")
 
-		cv2.putText(img, "BorderReminder", (80, 470), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2)
+		cv2.putText(img, "BorderReminder", BorderReminderTextXY, cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2)
 		QtImgLine = QImage(cv2.cvtColor(img, cv2.COLOR_BGR2RGB).data,
 						   img.shape[1],
 						   img.shape[0],
@@ -99,26 +103,28 @@ class MyWindows(QWidget, UI.Ui_Form):
 
 	def rightWindow(self, img, deep):
 		img[::] = 255
-		DeepList = ['25', '21', '14', '10', '-12']
-		NumList = ['1', '2', '3', '4', '5', ]
 
-		# DeepList.append(np.random.randint(-10, 11))
+		if len(self.NumList) >= 15:
+			self.DeepList.pop(0)
+			self.NumList.pop(0)
 
-		# 将DeepList中的数据转化为int类型
-		DeepList = list(map(int, DeepList))
+		self.DeepList.append(np.random.randint(1, 100, 1)[0])
+		self.NumList.append(1)
+
+		# 将self.DeepList中的数据转化为int类型
+		self.DeepList = list(map(int, self.DeepList))
 
 		# 将x,y轴转化为矩阵式
-		self.x = np.arange(len(NumList)) + 1
-		self.y = np.array(DeepList)
+		self.x = np.arange(len(self.NumList)) + 1
+		self.y = np.array(self.DeepList)
 
-		colors = ["g" if i > 0 else "r" for i in DeepList]
-
-		# tick_label后边跟x轴上的值，（可选选项：color后面跟柱型的颜色，width后边跟柱体的宽度）
-		plt.bar(range(len(NumList)), DeepList, tick_label=NumList, color=colors, width=0.5)
+		# print(self.DeepList)
+		colors = ["g" if i > 0 else "r" for i in self.DeepList]
+		plt.clf()
+		plt.bar(range(len(self.NumList)), self.DeepList, tick_label=self.NumList, color=colors, width=0.5)
 
 		# 在柱体上显示数据
-		for a, b in zip(self.x,
-						self.y):  # 将对象中对应的元素打包成一个个元组，然后返回由这些元组组成的列表，在Python 3.x 中为了减少内存，zip() 返回的是一个对象。如需展示列表，需手动 list() 转换
+		for a, b in zip(self.x, self.y):
 			plt.text(a - 1, b, '%d' % b, ha='center', va='bottom')
 
 		# 画图
@@ -132,6 +138,7 @@ class MyWindows(QWidget, UI.Ui_Form):
 						  img.shape[1] * 4,
 						  QImage.Format_RGBA8888)
 		pixmapR = QPixmap(QtImgBar)
+
 		self.rightLabel.setPixmap(pixmapR)
 
 	def showStartXY(self, startX, startY):
@@ -144,8 +151,8 @@ class MyWindows(QWidget, UI.Ui_Form):
 		self.nowXY.setText("(%d, %d)" % (nowX, nowY))
 
 	def update(self):
-		self.leftWindow(self.imgLine, *self.__thread.get_msg_line())
-		self.rightWindow(self.imgBar, self.__thread.get_msg_bar())
+		self.leftWindow(self.imgLine, *self.__thread.get_msg_xy())
+		self.rightWindow(self.imgBar, self.__thread.get_msg_deep())
 		self.showStartXY(*self.__thread.get_msg_startXY())
 		self.showEndXY(*self.__thread.get_msg_endXY())
 		self.showNowXY(*self.__thread.get_msg_nowXY())

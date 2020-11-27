@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1173</width>
+    <width>1349</width>
     <height>845</height>
    </rect>
   </property>
@@ -18,7 +18,7 @@
     <rect>
      <x>13</x>
      <y>13</y>
-     <width>1141</width>
+     <width>1231</width>
      <height>591</height>
     </rect>
    </property>
@@ -55,7 +55,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -66,7 +66,7 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="1,5">
+     <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="2,1,8">
       <item>
        <widget class="QGroupBox" name="groupBox_2">
         <property name="title">
@@ -77,6 +77,9 @@
           <layout class="QHBoxLayout" name="horizontalLayout_2">
            <item>
             <widget class="QLabel" name="startcoordinate">
+             <property name="styleSheet">
+              <string notr="true">font: 25 9pt &quot;微软雅黑 Light&quot;;</string>
+             </property>
              <property name="text">
               <string>起点坐标</string>
              </property>
@@ -95,6 +98,9 @@
           <layout class="QHBoxLayout" name="horizontalLayout_3">
            <item>
             <widget class="QLabel" name="endcoordinate">
+             <property name="styleSheet">
+              <string notr="true">font: 25 9pt &quot;微软雅黑 Light&quot;;</string>
+             </property>
              <property name="text">
               <string>终点坐标</string>
              </property>
@@ -113,6 +119,9 @@
           <layout class="QHBoxLayout" name="horizontalLayout_4">
            <item>
             <widget class="QLabel" name="nowcoordinate">
+             <property name="styleSheet">
+              <string notr="true">font: 25 9pt &quot;微软雅黑 Light&quot;;</string>
+             </property>
              <property name="text">
               <string>当前坐标</string>
              </property>
@@ -131,17 +140,61 @@
        </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+       <widget class="QLabel" name="startcoordinate_2">
+        <property name="styleSheet">
+         <string notr="true">font: 25 24pt &quot;微软雅黑 Light&quot;;</string>
         </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>918</width>
-          <height>68</height>
-         </size>
+        <property name="text">
+         <string>边界提示</string>
         </property>
-       </spacer>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="BorderReminder">
+        <property name="palette">
+         <palette>
+          <active>
+           <colorrole role="Text">
+            <brush brushstyle="SolidPattern">
+             <color alpha="255">
+              <red>255</red>
+              <green>0</green>
+              <blue>0</blue>
+             </color>
+            </brush>
+           </colorrole>
+          </active>
+          <inactive>
+           <colorrole role="Text">
+            <brush brushstyle="SolidPattern">
+             <color alpha="255">
+              <red>255</red>
+              <green>0</green>
+              <blue>0</blue>
+             </color>
+            </brush>
+           </colorrole>
+          </inactive>
+          <disabled>
+           <colorrole role="Text">
+            <brush brushstyle="SolidPattern">
+             <color alpha="255">
+              <red>120</red>
+              <green>120</green>
+              <blue>120</blue>
+             </color>
+            </brush>
+           </colorrole>
+          </disabled>
+         </palette>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">font: 24pt &quot;微软雅黑&quot;;</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
