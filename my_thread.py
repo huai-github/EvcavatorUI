@@ -58,7 +58,6 @@ class MyThread(threading.Thread):
 if __name__ == "__main__":
 	from time import sleep
 
-
 	def func1():
 		while True:
 			print("This is ", func1.__name__)

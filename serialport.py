@@ -1,5 +1,3 @@
-import binascii
-
 import serial
 import serial.tools.list_ports
 
@@ -14,7 +12,7 @@ class SerialPortCommunication():
 			# 打开串口，并得到串口对象
 			self.com = serial.Serial(self.port, self.bps, timeout=self.timeout)
 			# 判断是否打开成功
-			if (self.com.is_open):
+			if self.com.is_open:
 				ret = True
 		except Exception as e:
 			print("---open error---：", e)
@@ -88,14 +86,15 @@ class SerialPortCommunication():
 # 宏定义
 _4G_COM = "com21"
 
-if __name__ == '__main__':
-	com_rec_buf = []
-	com_send_buf = [12, 22, 33, 44, 55, 66, 77, 88] # test
-
-	test_port = SerialPortCommunication(_4G_COM, 115200, 0)
-	if ret:
-		test_port.rec_data(com_rec_buf, 1024, 0)
-		print(com_rec_buf)
-
-		# test_port.send_data(com_send_buf, len(com_send_buf))
-	test_port.close_com()
+# if __name__ == '__main__':
+# 	# com_rec_buf = []
+# 	com_send_buf = [12, 22, 33, 44, 55, 66, 77, 88] # test
+#
+# 	test_port = SerialPortCommunication(_4G_COM, 115200, 5)
+# 	if ret:
+# 		# test_port.rec_data(com_rec_buf, 1024, 0)
+# 		com_rec_buf = test_port.read_line()
+# 		print(com_rec_buf[5:7])
+#
+# 		# test_port.send_data(com_send_buf, len(com_send_buf))
+# 	test_port.close_com()
