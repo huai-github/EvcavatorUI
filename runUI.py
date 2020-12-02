@@ -1,13 +1,11 @@
-import random
 import sys
 import UI
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QHBoxLayout, QMainWindow, QApplication
-from PyQt5.QtGui import QImage, QPixmap, QPainter
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QApplication
+from PyQt5.QtGui import QImage, QPixmap
 from PyQt5 import QtCore
 from time import sleep
 from my_thread import MyThread
