@@ -1,7 +1,6 @@
 import serial
 import serial.tools.list_ports
 
-
 class SerialPortCommunication():
 	def __init__(self, com, bps, timeout):
 		self.port = com
@@ -67,34 +66,35 @@ class SerialPortCommunication():
 			try:
 				if self.com.in_waiting:  # in_waiting返回接收缓冲区的字节数
 					if way == 0:
-						# for i in range(self.com.in_waiting):
 						for i in range(rec_len):
-							data = self.read_size(1).hex()
-							if data != "0a":
-								rec_buff.append(data)
-							else:
-								return
-					# if way == 1:  # 整体接收
-					# 	# data = self.com.read(self.com.in_waiting).decode("utf-8")#方式一
-					# 	rec_buff = self.com.read_all()
-					return rec_buff
+							data = self.read_size(1)  # str
+							# data = int(data, 16)
+							# data = bytes(data)
+							rec_buff.append(data)
+						return rec_buff
+					if way == 1:  # 整体接收
+						# data = self.com.read(self.com.in_waiting).decode("utf-8") #方式一
+						rec_buff = self.com.read_all()
+						return rec_buff
 
 			except Exception as e:
 				print("rec error：", e)
+
 
 #####################################################################################
 # 宏定义
 _4G_COM = "com21"
 
-# if __name__ == '__main__':
-# 	# com_rec_buf = []
-# 	com_send_buf = [12, 22, 33, 44, 55, 66, 77, 88] # test
-#
-# 	test_port = SerialPortCommunication(_4G_COM, 115200, 5)
-# 	if ret:
-# 		# test_port.rec_data(com_rec_buf, 1024, 0)
-# 		com_rec_buf = test_port.read_line()
-# 		print(com_rec_buf[5:7])
-#
-# 		# test_port.send_data(com_send_buf, len(com_send_buf))
-# 	test_port.close_com()
+if __name__ == '__main__':
+	com_rec_buf = []
+	# com_send_buf = [12, 22, 33, 44, 55, 66, 77, 88] # test
+
+	test_port = SerialPortCommunication(_4G_COM, 115200, 0.5)
+	if ret:
+		test_port.rec_data(com_rec_buf, 138, 0)
+		# com_rec_buf = test_port.read_line()
+		print(com_rec_buf)
+		print(type(com_rec_buf[0]))
+
+	# test_port.send_data(com_send_buf, len(com_send_buf))
+	test_port.close_com()

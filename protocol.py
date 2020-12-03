@@ -1,13 +1,6 @@
 import serialport
-from ctypes import *
+from tools import *
 
-class TypeSwitchUnion(Union):
-	_fields_ = [
-		('double', c_double),
-		('int', c_int),
-		('ushort', c_char * 2),
-		('uchar', c_char * 8)
-	]
 
 class HeartStruct:
 	"""心跳"""
@@ -36,17 +29,6 @@ class SendHeadStruct:
 		self.sumcheck = 0
 		self.end = None
 
-send_head = SendHeadStruct()
-send_head.type = 0x01
-send_head.id = 0x01
-send_head.len = 0x08
-send_head.seqnum = 0x01  # 需要自加
-send_head.msg = 0x1
-send_head.sumcheck = 0xff
-send_head.sumcheck = '0a'
-send_head_buf = []
-send_head_buf[0] = send_head.type
-
 class SendBodyStruct:
 	"""上传数据,每帧40B"""
 
@@ -64,7 +46,7 @@ class SendBodyStruct:
 		self.end = '0a'
 
 ###################################### Send ######################################
-send_body = SendBodyStruct()
+
 
 
 
