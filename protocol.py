@@ -1,11 +1,12 @@
 import serialport
-from ctypes import Union, c_ubyte, c_double
+from ctypes import *
 
 class TypeSwitchUnion(Union):
 	_fields_ = [
 		('double', c_double),
-		('ushort', c_ubyte * 2),
-		('uchar', c_ubyte * 8)
+		('int', c_int),
+		('ushort', c_char * 2),
+		('uchar', c_char * 8)
 	]
 
 class HeartStruct:
@@ -26,21 +27,31 @@ class SendHeadStruct:
 	"""上传头部"""
 
 	def __init__(self):
-		self.start = "$"
+		self.start = 36
 		self.type = None  # 数据类型
 		self.id = None  # 挖掘机编号
 		self.len = None  # 数据包中长度
 		self.seqnum = None  # 包序列号
-		self.reserved = 0  # 预留
+		self.msg = 0  		# 0 接收任务成功，1 接收任务失败
 		self.sumcheck = 0
 		self.end = None
 
+send_head = SendHeadStruct()
+send_head.type = 0x01
+send_head.id = 0x01
+send_head.len = 0x08
+send_head.seqnum = 0x01  # 需要自加
+send_head.msg = 0x1
+send_head.sumcheck = 0xff
+send_head.sumcheck = '0a'
+send_head_buf = []
+send_head_buf[0] = send_head.type
 
 class SendBodyStruct:
 	"""上传数据,每帧40B"""
 
 	def __init__(self):
-		self.start = '$'
+		self.start = 36
 		self.type = None  # 数据类型
 		self.id = None  # 挖掘机编号
 		self.len = None  # 数据包中长度
@@ -51,6 +62,12 @@ class SendBodyStruct:
 		self.reserved = [0] * 9  # 9B
 		self.sumcheck = 0
 		self.end = '0a'
+
+###################################### Send ######################################
+send_body = SendBodyStruct()
+
+
+
 
 
 class Task:
@@ -93,16 +110,19 @@ if task.start == task_buffer[0]:  # 判断头是否正确
 else:
 	print("\r\nhead error!!!\r\n")
 
-# no = []
-# x1 = []
-# y1 = []
-# h1 = []
-# w1 = []
-# x2 = []
-# y2 = []
-# h2 = []
-# w2 = []
-i = 0
+com_4g.close_com()
+
+no = []	# bytes
+x1 = []
+y1 = []
+h1 = []
+w1 = []
+x2 = []
+y2 = []
+h2 = []
+w2 = []
+
+i = 0 # 静态变量除了类，怎么搞？？
 # for i in range(len(task.section)):
 while(task.sectionNum):
 	no = task.section[(i+0):(i+2)]
@@ -116,18 +136,22 @@ while(task.sectionNum):
 	w2 = task.section[(i+52):(i+54)]
 	task.sectionNum  = task.sectionNum -1
 
+
 # 联合体转换数据类型
 x1_union = TypeSwitchUnion()
 x1_union.uchar = x1
-x1_d = x1_union.double
+# x1_d = x1_union.double
+x1_d = x1_union.int
 
 y1_union = TypeSwitchUnion()
 y1_union.uchar = y1
-y1_d = y1_union.double
+# y1_d = y1_union.double
+y1_d = y1_union.int
 
 h1_union = TypeSwitchUnion()
 h1_union.uchar = h1
-h1_d = h1_union.double
+# h1_d = h1_union.double
+h1_d = h1_union.int
 
 w1_union = TypeSwitchUnion()
 w1_union.uchar = w1
@@ -135,23 +159,32 @@ w1_s = w1_union.ushort
 
 x2_union = TypeSwitchUnion()
 x2_union.uchar = x2
-x2_d = x2_union.double
+# x2_d = x2_union.double
+x2_d = x2_union.int
 
 y2_union = TypeSwitchUnion()
 y2_union.uchar = y2
-y2_d = y2_union.double
+# y2_d = y2_union.double
+y2_d = y2_union.int
 
 h2_union = TypeSwitchUnion()
 h2_union.uchar = h2
-h2_d = h2_union.double
+# h2_d = h2_union.double
+h2_d = h2_union.int
 
 w2_union = TypeSwitchUnion()
 w2_union.uchar = w2
 w2_s = w2_union.ushort
 
 
-sX = 550/2
-sY = 50
-eX = 480/2
-eY = 400
+# sX = 550//2
+# sY = 50
+# eX = 480//2
+# eY = 400
+
+sX = x1_d
+sY = y1_d
+eX = x2_d
+eY = y2_d
+
 Interval = 120
