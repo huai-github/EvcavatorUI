@@ -1,6 +1,36 @@
 from serialport import SerialPortCommunication
 from tools import *
+import math
 
+
+def LatLon2XY(latitude, longitude):
+    a = 6378137.0
+    # b = 6356752.3142
+    # c = 6399593.6258
+    # alpha = 1 / 298.257223563
+    e2 = 0.0066943799013
+    # epep = 0.00673949674227
+
+
+    #将经纬度转换为弧度
+    latitude2Rad = (math.pi / 180.0) * latitude
+
+    beltNo = int((longitude + 1.5) / 3.0) #计算3度带投影度带号
+    L = beltNo * 3 #计算中央经线
+    l0 = longitude - L #经差
+    tsin = math.sin(latitude2Rad)
+    tcos = math.cos(latitude2Rad)
+    t = math.tan(latitude2Rad)
+    m = (math.pi / 180.0) * l0 * tcos
+    et2 = e2 * pow(tcos, 2)
+    et3 = e2 * pow(tsin, 2)
+    X = 111132.9558 * latitude - 16038.6496 * math.sin(2 * latitude2Rad) + 16.8607 * math.sin(4 * latitude2Rad) - 0.0220 * math.sin(6 * latitude2Rad)
+    N = a / math.sqrt(1 - et3)
+
+    x = X + N * t * (0.5 * pow(m, 2) + (5.0 - pow(t, 2) + 9.0 * et2 + 4 * pow(et2, 2)) * pow(m, 4) / 24.0 + (61.0 - 58.0 * pow(t, 2) + pow(t, 4)) * pow(m, 6) / 720.0)
+    y = 500000 + N * (m + (1.0 - pow(t, 2) + et2) * pow(m, 3) / 6.0 + (5.0 - 18.0 * pow(t, 2) + pow(t, 4) + 14.0 * et2 - 58.0 * et2 * pow(t, 2)) * pow(m, 5) / 120.0)
+
+    return x, y
 
 class LatLonAlt:
 	def __init__(self):
@@ -12,12 +42,12 @@ class LatLonAlt:
 class GPSINSData:
 	def __init__(self):
 		self.head = [b'\xaa', b'\x33'] 	# 2B deviation 0-2     b'3' == b'\x33'
-		self.length = [0x00]*2			# 2B deviation 4-6
-		self.latitude =[0x00]*8  		# 8B deviation 24
-		self.longitude = [0x00]*8  		# 8B deviation 32
-		self.altitude = [0x00]*8  		# 8B deviation 40
-		self.checksum = 0x00	 		# 2B deviation 136
-		self.xor_check = 0x00         	# 定义异或校验返回值
+		self.length = [0]*2				# 2B deviation 4-6
+		self.latitude =[0]*8  			# 8B deviation 24
+		self.longitude = [0]*8  		# 8B deviation 32
+		self.altitude = [0]*8  			# 8B deviation 40
+		self.checksum = 0	 			# 2B deviation 136
+		self.xor_check = 0         		# 定义异或校验返回值
 
 	def gps_msg_analysis(self, recbuff):
 		if (recbuff[0] == self.head[0]) and (recbuff[1] == self.head[1]):
@@ -42,9 +72,9 @@ class GPSINSData:
 				else:
 					print("The signal of gps is unstable！\r\n")
 					# return
-			else:	# gps信号不稳定
+			else:
 				print("checksum error!!!\r\n")
-				# return
+				return
 		else:
 			print("data head error!!!\r\n")
 			return
@@ -56,15 +86,10 @@ class GPSINSData:
 
 		gps_switch_lat = TypeSwitchUnion()
 		gps_switch_lat.char = latitude
-		# print(gps_switch_lat.double)
-
 		gps_switch_lon = TypeSwitchUnion()
 		gps_switch_lon.char = longitude
-		# print(gps_switch_lon.double)
-
 		gps_switch_alt = TypeSwitchUnion()
 		gps_switch_alt.char = altitude
-		# print(gps_switch_alt.double)
 
 		return gps_switch_lat.double, gps_switch_lon.double, gps_switch_alt.double
 
@@ -76,7 +101,7 @@ if __name__ == "__main__":
 	gps_rec_buffer = []
 	gps_data = GPSINSData()
 	gps_com = SerialPortCommunication(GPS_COM, 115200, 0.5)
-	gps_com.rec_data(gps_rec_buffer, 138) # int
+	gps_com.rec_data(gps_rec_buffer, 138)  # int
 	print(gps_rec_buffer)
 	gps_data.gps_msg_analysis(gps_rec_buffer)
 	gps_data_ret = gps_data.gps_typeswitch()
@@ -87,3 +112,7 @@ if __name__ == "__main__":
 	gps_msg.altitude = gps_data_ret[2]
 
 	print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
+
+	x, y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
+	print(x)
+	print(y)
