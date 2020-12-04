@@ -14,7 +14,7 @@ import rectask
 import gps
 
 
-class UIFreshThread:
+class UIFreshThread: 	# 界面刷新线程
 	def __init__(self):
 		rectask_threadLock.acquire()
 		# self.startX = w // 2  # from could
@@ -63,18 +63,15 @@ class MyWindows(QWidget, UI.Ui_Form):
 		super().__init__()
 		# 注意：里面的控件对象也成为窗口对象的属性了
 		self.setupUi(self)
-
 		self.imgLine = np.zeros((h, w, 3), np.uint8)  # 画布
 		self.imgBar = np.zeros((h, w, 3), np.uint8)
 		self.figure = plt.figure()  # 可选参数,facecolor为背景颜色
 		self.canvas = FigureCanvas(self.figure)
 		self.__timer = QtCore.QTimer()  # 定时器用于定时刷新
 		self.set_slot()
-
 		self.__thread = UIFreshThread()  # 开启线程(同时将这个线程类作为一个属性)
 		MyThread(self.__thread, (), name='UIFreshThread', daemon=True).start()
-		self.__timer.start(1000)  # s 刷新一次
-
+		self.__timer.start(1000)  # ms 刷新一次
 		self.DeepList = []
 		self.NumList = []
 
@@ -167,18 +164,19 @@ h = 480  # 画布大小
 w = 550
 gps_threadLock = threading.Lock()
 rectask_threadLock = threading.Lock()
+
 if __name__ == "__main__":
 	gps_thread = threading.Thread(target=gps.gps_thread_fun)
-	rectask_thread = threading.Thread(target=rectask.rectask_thread_fun)
+	# rectask_thread = threading.Thread(target=rectask.rectask_thread_fun)
 
 	gps_thread.setDaemon(True)  # 守护线程,当主进程结束后,子线程也会随之结束
-	rectask_thread.setDaemon(True)
+	# rectask_thread.setDaemon(True)
 
 	gps_thread.start()			# 启动线程
-	rectask_thread.start()
+	# rectask_thread.start()
 
 	gps_thread.join()			# 设置主线程等待子线程结束
-	rectask_thread.join()
+	# rectask_thread.join()
 
 	app = QApplication(sys.argv)
 	mainWindow = MyWindows()
