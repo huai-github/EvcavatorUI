@@ -1,6 +1,6 @@
 import serialport
 from tools import *
-
+import runUI
 
 class HeartStruct:
 	"""心跳"""
@@ -94,22 +94,28 @@ class Task:
 
 			return no, x1, y1, h1, w1, x2, y2, h2, w2  # return在循环里面,第一次返回一次
 
+x1_d = 0
+y1_d = 0
+h1_d = 0
+w1_s = 0
+x2_d = 0
+y2_d = 0
+h2_d = 0
+w2_s = 0
 
-_4G_COM = "com21"
 
-
-def task_run(self):
-	# lock.acquire()
+def rectask_thread_fun():
+	_4G_COM = "com21"
 	task = Task()
-	com_4g = serialport.SerialPortCommunication(_4G_COM, 115200, 5)
+	com_4g = serialport.SerialPortCommunication(_4G_COM, 115200, 0.5)
 	task_buffer = com_4g.read_line()  # type = bytes
-	com_4g.close_com()
 	# print(task_buffer)
 	task.task_msg_analysis(task_buffer)
 	section_one = task.section_analysis()  # 返回一个直线段
 	# print(section_one)  # tuple
-
+	runUI.rectask_threadLock.acquire()		# 加锁
 	# 联合体转换数据类型
+	global x1_d, y1_d, h1_d, w1_s, x2_d, y2_d, h2_d, w2_s
 	x1_union = TypeSwitchUnion()
 	x1_union.char = section_one[1]
 	x1_d = x1_union.int
@@ -141,9 +147,9 @@ def task_run(self):
 	w2_union = TypeSwitchUnion()
 	w2_union.char = section_one[8]
 	w2_s = w2_union.short
+	runUI.rectask_threadLock.release()		# 解锁
 
 	return x1_d, y1_d, h1_d, w1_s, x2_d, y2_d, h2_d, w2_s
-	# lock.release()
 
 
 ###############################################################################################################

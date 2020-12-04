@@ -1,8 +1,8 @@
 from serialport import SerialPortCommunication
 from tools import *
-import threading
 import math
-import globalvar as gl
+import runUI
+
 
 
 def LatLon2XY(latitude, longitude):
@@ -101,6 +101,7 @@ x = 0
 y = 0
 deep = 0
 
+
 def gps_thread_fun():
     GPS_COM = "com21"
     gps_rec_buffer = []
@@ -109,22 +110,16 @@ def gps_thread_fun():
     gps_com.rec_data(gps_rec_buffer, 138)  # int
     gps_data.gps_msg_analysis(gps_rec_buffer)
     gps_data_ret = gps_data.gps_typeswitch()
-
+    runUI.gps_threadLock.acquire()      # 加锁
     gps_msg = LatLonAlt()
     gps_msg.latitude = gps_data_ret[0]
     gps_msg.longitude = gps_data_ret[1]
     gps_msg.altitude = gps_data_ret[2]
-
+    runUI.gps_threadLock.release()      # 解锁
     # print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
     global x, y, deep
     x, y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
     deep = gps_msg.altitude
-
-    # gl._init()
-    # gl.set_value('x', x)
-    # gl.set_value('y', y)
-    # gl.set_value('deep', deep)
-
     # print("x：%s\ty：%s\tdeep：%s" % (x, y, deep))
 
 ##############################################################################################################

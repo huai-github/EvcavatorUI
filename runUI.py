@@ -10,43 +10,37 @@ from PyQt5.QtGui import QImage, QPixmap
 from PyQt5 import QtCore
 from time import sleep
 from my_thread import MyThread
-from rectask import *
+import rectask
 import gps
-import globalvar as gl
-
-h = 480  # 画布大小
-w = 550
-
-# GPS_COM = "com21"
-# _4G_COM = "com21"
 
 
 class UIFreshThread:
 	def __init__(self):
-		self.startX = w // 2  # from could
-		self.startY = 50
-		self.endX = w // 2
-		self.endY = 400
-		self.Interval = 120
-		# self.startX = int(x1_d)	 # from could
-		# self.startY = int(y1_d)
-		# self.endX = int(x2_d)
-		# self.endY = int(y2_d)
+		rectask_threadLock.acquire()
+		# self.startX = w // 2  # from could
+		# self.startY = 50
+		# self.endX = w // 2
+		# self.endY = 400
 		# self.Interval = 120
+		self.startX = int(rectask.x1_d)	 # from could
+		self.startY = int(rectask.y1_d)
+		self.endX = int(rectask.x2_d)
+		self.endY = int(rectask.y2_d)
+		self.Interval = 120
+		rectask_threadLock.release()
 
 		self.nowX = 0  # from gps
 		self.nowY = 0
 		self.deep = 0
 
 	def __call__(self):
-		# x = gl.get_value('x')
-		# y = gl.get_value('y')
-		# deep = gl.get_value('deep')
 		# while True:
+		gps_threadLock.acquire()
 		self.nowX = int(gps.x - 4076000)  # from gps
 		self.nowY = int(gps.y - 515000)
 		self.deep = int(gps.deep)
 		# sleep(1)
+		gps_threadLock.release()
 
 	def get_msg_xy(self):
 		return self.startX, self.startY, self.endX, self.endY, self.Interval, self.nowX, self.nowY
@@ -168,12 +162,23 @@ class MyWindows(QWidget, UI.Ui_Form):
 		self.showEndXY(*self.__thread.get_msg_endXY())
 		self.showNowXY(*self.__thread.get_msg_nowXY())
 
-threadLock = threading.Lock()
+
+h = 480  # 画布大小
+w = 550
+gps_threadLock = threading.Lock()
+rectask_threadLock = threading.Lock()
 if __name__ == "__main__":
 	gps_thread = threading.Thread(target=gps.gps_thread_fun)
+	rectask_thread = threading.Thread(target=rectask.rectask_thread_fun)
+
 	gps_thread.setDaemon(True)  # 守护线程,当主进程结束后,子线程也会随之结束
-	gps_thread.start()
+	rectask_thread.setDaemon(True)
+
+	gps_thread.start()			# 启动线程
+	rectask_thread.start()
+
 	gps_thread.join()			# 设置主线程等待子线程结束
+	rectask_thread.join()
 
 	app = QApplication(sys.argv)
 	mainWindow = MyWindows()
