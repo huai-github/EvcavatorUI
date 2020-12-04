@@ -1,6 +1,8 @@
 from serialport import SerialPortCommunication
 from tools import *
+import threading
 import math
+import globalvar as gl
 
 
 def LatLon2XY(latitude, longitude):
@@ -32,89 +34,119 @@ def LatLon2XY(latitude, longitude):
 
     return x, y
 
+
 class LatLonAlt:
-	def __init__(self):
-		self.latitude = 0
-		self.longitude = 0
-		self.altitude = 0
+    def __init__(self):
+        self.latitude = 0
+        self.longitude = 0
+        self.altitude = 0
 
 
 class GPSINSData:
-	def __init__(self):
-		self.head = [b'\xaa', b'\x33'] 	# 2B deviation 0-2     b'3' == b'\x33'
-		self.length = [0]*2				# 2B deviation 4-6
-		self.latitude =[0]*8  			# 8B deviation 24
-		self.longitude = [0]*8  		# 8B deviation 32
-		self.altitude = [0]*8  			# 8B deviation 40
-		self.checksum = 0	 			# 2B deviation 136
-		self.xor_check = 0         		# 定义异或校验返回值
+    def __init__(self):
+        self.head = [b'\xaa', b'\x33'] 	# 2B deviation 0-2     b'3' == b'\x33'
+        self.length = [0]*2				# 2B deviation 4-6
+        self.latitude =[0]*8  			# 8B deviation 24
+        self.longitude = [0]*8  		# 8B deviation 32
+        self.altitude = [0]*8  			# 8B deviation 40
+        self.checksum = 0	 			# 2B deviation 136
+        self.xor_check = 0         		# 定义异或校验返回值
 
-	def gps_msg_analysis(self, recbuff):
-		if (recbuff[0] == self.head[0]) and (recbuff[1] == self.head[1]):
-			self.length = recbuff[4:6]
-			self.latitude = recbuff[24:32]
-			self.longitude = recbuff[32:40]
-			self.altitude = recbuff[40:48]
-			self.checksum = recbuff[136:138]
-			self.checksum = self.checksum[0] + self.checksum[1] # 将checksum 2字节合并
-			# print(self.checksum)
+    def gps_msg_analysis(self, recbuff):
+        if (recbuff[0] == self.head[0]) and (recbuff[1] == self.head[1]):
+            self.length = recbuff[4:6]
+            self.latitude = recbuff[24:32]
+            self.longitude = recbuff[32:40]
+            self.altitude = recbuff[40:48]
+            self.checksum = recbuff[136:138]
+            self.checksum = self.checksum[0] + self.checksum[1] # 将checksum 2字节合并
+            # print(self.checksum)
 
-			for i in range(len(recbuff) -2):
-				recbuff[i] = int.from_bytes(recbuff[i], byteorder='big', signed=False)  # bytes转int
-				self.xor_check = self.xor_check ^ recbuff[i]
+            for i in range(len(recbuff) -2):
+                recbuff[i] = int.from_bytes(recbuff[i], byteorder='big', signed=False)  # bytes转int
+                self.xor_check = self.xor_check ^ recbuff[i]
 
-			self.xor_check = self.xor_check.to_bytes(length=2, byteorder='little', signed=False)
-			# print((self.xor_check))
+            self.xor_check = self.xor_check.to_bytes(length=2, byteorder='little', signed=False)
+            # print((self.xor_check))
 
-			if self.xor_check == self.checksum:  # 数据包异或校验通过
-				if recbuff[104] == b'\x04':  # gps信号稳定
-					print("The signal of gps is stable！\r\n")
-				else:
-					print("The signal of gps is unstable！\r\n")
-					# return
-			else:
-				print("checksum error!!!\r\n")
-				return
-		else:
-			print("data head error!!!\r\n")
-			return
+            if self.xor_check == self.checksum:  # 数据包异或校验通过
+                if recbuff[104] == b'\x04':  # gps信号稳定
+                    print("The signal of gps is stable！\r\n")
+                else:
+                    print("The signal of gps is unstable！\r\n")
+                    # return
+            else:
+                print("checksum error!!!\r\n")
+                return
+        else:
+            print("data head error!!!\r\n")
+            return
 
-	def gps_typeswitch(self):
-		latitude = self.latitude[0] + self.latitude[1] +self.latitude[2] +self.latitude[3] +self.latitude[4] +self.latitude[5] +self.latitude[6] +self.latitude[7]
-		longitude = self.longitude[0] + self.longitude[1] +self.longitude[2] +self.longitude[3] +self.longitude[4] +self.longitude[5] +self.longitude[6] +self.longitude[7]
-		altitude = self.altitude[0] + self.altitude[1] +self.altitude[2] +self.altitude[3] +self.altitude[4] +self.altitude[5] +self.altitude[6] +self.altitude[7]
+    def gps_typeswitch(self):
+        latitude = self.latitude[0] + self.latitude[1] +self.latitude[2] +self.latitude[3] +self.latitude[4] +self.latitude[5] +self.latitude[6] +self.latitude[7]
+        longitude = self.longitude[0] + self.longitude[1] +self.longitude[2] +self.longitude[3] +self.longitude[4] +self.longitude[5] +self.longitude[6] +self.longitude[7]
+        altitude = self.altitude[0] + self.altitude[1] +self.altitude[2] +self.altitude[3] +self.altitude[4] +self.altitude[5] +self.altitude[6] +self.altitude[7]
 
-		gps_switch_lat = TypeSwitchUnion()
-		gps_switch_lat.char = latitude
-		gps_switch_lon = TypeSwitchUnion()
-		gps_switch_lon.char = longitude
-		gps_switch_alt = TypeSwitchUnion()
-		gps_switch_alt.char = altitude
+        gps_switch_lat = TypeSwitchUnion()
+        gps_switch_lat.char = latitude
+        gps_switch_lon = TypeSwitchUnion()
+        gps_switch_lon.char = longitude
+        gps_switch_alt = TypeSwitchUnion()
+        gps_switch_alt.char = altitude
 
-		return gps_switch_lat.double, gps_switch_lon.double, gps_switch_alt.double
+        return gps_switch_lat.double, gps_switch_lon.double, gps_switch_alt.double
 
+
+x = 0
+y = 0
+deep = 0
+
+def gps_thread_fun():
+    GPS_COM = "com21"
+    gps_rec_buffer = []
+    gps_data = GPSINSData()
+    gps_com = SerialPortCommunication(GPS_COM, 115200, 0.5)
+    gps_com.rec_data(gps_rec_buffer, 138)  # int
+    gps_data.gps_msg_analysis(gps_rec_buffer)
+    gps_data_ret = gps_data.gps_typeswitch()
+
+    gps_msg = LatLonAlt()
+    gps_msg.latitude = gps_data_ret[0]
+    gps_msg.longitude = gps_data_ret[1]
+    gps_msg.altitude = gps_data_ret[2]
+
+    # print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
+    global x, y, deep
+    x, y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
+    deep = gps_msg.altitude
+
+    # gl._init()
+    # gl.set_value('x', x)
+    # gl.set_value('y', y)
+    # gl.set_value('deep', deep)
+
+    # print("x：%s\ty：%s\tdeep：%s" % (x, y, deep))
 
 ##############################################################################################################
-GPS_COM = "com21"
-
-# if __name__ == "__main__":
-gps_rec_buffer = []
-gps_data = GPSINSData()
-gps_com = SerialPortCommunication(GPS_COM, 115200, 0.5)
-gps_com.rec_data(gps_rec_buffer, 138)  # int
-print(gps_rec_buffer)
-gps_data.gps_msg_analysis(gps_rec_buffer)
-gps_data_ret = gps_data.gps_typeswitch()
-
-gps_msg = LatLonAlt()
-gps_msg.latitude = gps_data_ret[0]
-gps_msg.longitude = gps_data_ret[1]
-gps_msg.altitude = gps_data_ret[2]
-
-print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
-
-x, y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
-deep = gps_msg.altitude
-print(x)
-print(y)
-print(deep)
+# GPS_COM = "com21"
+# # if __name__ == "__main__":
+# gps_rec_buffer = []
+# gps_data = GPSINSData()
+# gps_com = SerialPortCommunication(GPS_COM, 115200, 0.5)
+# gps_com.rec_data(gps_rec_buffer, 138)  # int
+# print(gps_rec_buffer)
+# gps_data.gps_msg_analysis(gps_rec_buffer)
+# gps_data_ret = gps_data.gps_typeswitch()
+#
+# gps_msg = LatLonAlt()
+# gps_msg.latitude = gps_data_ret[0]
+# gps_msg.longitude = gps_data_ret[1]
+# gps_msg.altitude = gps_data_ret[2]
+#
+# print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
+#
+# x, y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
+# deep = gps_msg.altitude
+# print(x)
+# print(y)
+# print(deep)

@@ -81,8 +81,7 @@ class Task:
 			print("\r\nhead error!!!\r\n")
 			
 	def section_analysis(self):
-		# while (task.sectionNum):
-		for i in range(len(task.section)):
+		for i in range(len(self.section)):
 			no = self.section[(i + 0):(i + 2)]
 			x1 = self.section[(i + 2):(i + 10)]
 			y1 = self.section[(i + 10):(i + 18)]
@@ -92,13 +91,15 @@ class Task:
 			y2 = self.section[(i + 36):(i + 44)]
 			h2 = self.section[(i + 44):(i + 52)]
 			w2 = self.section[(i + 52):(i + 54)]
-			# self.sectionNum = self.sectionNum - 1
-			return no, x1, y1, h1, w1, x2, y2, h2, w2
+
+			return no, x1, y1, h1, w1, x2, y2, h2, w2  # return在循环里面,第一次返回一次
 
 
 _4G_COM = "com21"
 
-if __name__ == "__main__":
+
+def task_run(self):
+	# lock.acquire()
 	task = Task()
 	com_4g = serialport.SerialPortCommunication(_4G_COM, 115200, 5)
 	task_buffer = com_4g.read_line()  # type = bytes
@@ -124,7 +125,6 @@ if __name__ == "__main__":
 	w1_union = TypeSwitchUnion()
 	w1_union.char = section_one[4]
 	w1_s = w1_union.short
-	# print(w1_s)
 
 	x2_union = TypeSwitchUnion()
 	x2_union.char = section_one[5]
@@ -141,5 +141,57 @@ if __name__ == "__main__":
 	w2_union = TypeSwitchUnion()
 	w2_union.char = section_one[8]
 	w2_s = w2_union.short
+
+	return x1_d, y1_d, h1_d, w1_s, x2_d, y2_d, h2_d, w2_s
+	# lock.release()
+
+
+###############################################################################################################
+
+# _4G_COM = "com21"
+#
+# if __name__ == "__main__":
+# 	task = Task()
+# 	com_4g = serialport.SerialPortCommunication(_4G_COM, 115200, 5)
+# 	task_buffer = com_4g.read_line()  # type = bytes
+# 	com_4g.close_com()
+# 	# print(task_buffer)
+# 	task.task_msg_analysis(task_buffer)
+# 	section_one = task.section_analysis()  # 返回一个直线段
+# 	# print(section_one)  # tuple
+#
+# 	# 联合体转换数据类型
+# 	x1_union = TypeSwitchUnion()
+# 	x1_union.char = section_one[1]
+# 	x1_d = x1_union.int
+#
+# 	y1_union = TypeSwitchUnion()
+# 	y1_union.char = section_one[2]
+# 	y1_d = y1_union.int
+#
+# 	h1_union = TypeSwitchUnion()
+# 	h1_union.char = section_one[3]
+# 	h1_d = h1_union.int
+#
+# 	w1_union = TypeSwitchUnion()
+# 	w1_union.char = section_one[4]
+# 	w1_s = w1_union.short
+# 	# print(w1_s)
+#
+# 	x2_union = TypeSwitchUnion()
+# 	x2_union.char = section_one[5]
+# 	x2_d = x2_union.int
+#
+# 	y2_union = TypeSwitchUnion()
+# 	y2_union.char = section_one[6]
+# 	y2_d = y2_union.int
+#
+# 	h2_union = TypeSwitchUnion()
+# 	h2_union.char = section_one[7]
+# 	h2_d = h2_union.int
+#
+# 	w2_union = TypeSwitchUnion()
+# 	w2_union.char = section_one[8]
+# 	w2_s = w2_union.short
 
 
