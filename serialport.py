@@ -83,18 +83,18 @@ class SerialPortCommunication():
 
 #####################################################################################
 # 宏定义
-_4G_COM = "com21"
-
-if __name__ == '__main__':
-	com_rec_buf = []
-	# com_send_buf = [12, 22, 33, 44, 55, 66, 77, 88] # test
-
-	test_port = SerialPortCommunication(_4G_COM, 115200, 0.5)
-	if ret:
-		test_port.rec_data(com_rec_buf, 138, 0)
-		# com_rec_buf = test_port.read_line()
-		print(com_rec_buf)
-		print(type(com_rec_buf[0]))
-
-	# test_port.send_data(com_send_buf, len(com_send_buf))
-	test_port.close_com()
+# _4G_COM = "com21"
+#
+# if __name__ == '__main__':
+# 	com_rec_buf = []
+# 	# com_send_buf = [12, 22, 33, 44, 55, 66, 77, 88] # test
+#
+# 	test_port = SerialPortCommunication(_4G_COM, 115200, 0.5)
+# 	if ret:
+# 		test_port.rec_data(com_rec_buf, 138, 0)
+# 		# com_rec_buf = test_port.read_line()
+# 		print(com_rec_buf)
+# 		print(type(com_rec_buf[0]))
+#
+# 	# test_port.send_data(com_send_buf, len(com_send_buf))
+# 	test_port.close_com()

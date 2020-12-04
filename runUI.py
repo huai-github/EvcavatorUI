@@ -9,7 +9,8 @@ from PyQt5.QtGui import QImage, QPixmap
 from PyQt5 import QtCore
 from time import sleep
 from my_thread import MyThread
-import protocol
+from rectask import *
+from gps import x, y, deep
 
 h = 480		# 画布大小
 w = 550
@@ -17,11 +18,16 @@ w = 550
 
 class ThreadFunc:
 	def __init__(self):
-		self.startX = int(protocol.sX)	 # from could
-		self.startY = int(protocol.sY)
-		self.endX = int(protocol.eX)
-		self.endY = int(protocol.eY)
-		self.Interval = int(protocol.Interval)
+		# self.startX = w//2	 # from could
+		# self.startY = 50
+		# self.endX = w//2
+		# self.endY = 400
+		# self.Interval = 120
+		self.startX = int(x1_d)	 # from could
+		self.startY = int(y1_d)
+		self.endX = int(x2_d)
+		self.endY = int(y2_d)
+		self.Interval = 120
 
 		self.nowX = 0  # from gps
 		self.nowY = 0
@@ -29,9 +35,14 @@ class ThreadFunc:
 
 	def __call__(self):
 		while True:
-			self.nowX = np.random.randint(0, h, 1)[0]  # from gps
-			self.nowY = np.random.randint(0, w, 1)[0]
-			self.deep = np.random.randint(-10, 10, 1)[0]
+
+			self.nowX = int(x - 4076000)  # from gps
+			self.nowY = int(y - 515000)
+			self.deep = int(deep)
+			print(x)
+			print(self.nowX)
+			print(self.deep)
+
 			sleep(1)
 
 	def get_msg_xy(self):
@@ -107,7 +118,7 @@ class MyWindows(QWidget, UI.Ui_Form):
 			self.DeepList.pop(0)
 			self.NumList.pop(0)
 
-		self.DeepList.append(np.random.randint(1, 100, 1)[0])
+		self.DeepList.append(deep)
 		self.NumList.append(1)
 
 		# 将self.DeepList中的数据转化为int类型

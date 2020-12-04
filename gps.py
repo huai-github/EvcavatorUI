@@ -97,22 +97,24 @@ class GPSINSData:
 ##############################################################################################################
 GPS_COM = "com21"
 
-if __name__ == "__main__":
-	gps_rec_buffer = []
-	gps_data = GPSINSData()
-	gps_com = SerialPortCommunication(GPS_COM, 115200, 0.5)
-	gps_com.rec_data(gps_rec_buffer, 138)  # int
-	print(gps_rec_buffer)
-	gps_data.gps_msg_analysis(gps_rec_buffer)
-	gps_data_ret = gps_data.gps_typeswitch()
+# if __name__ == "__main__":
+gps_rec_buffer = []
+gps_data = GPSINSData()
+gps_com = SerialPortCommunication(GPS_COM, 115200, 0.5)
+gps_com.rec_data(gps_rec_buffer, 138)  # int
+print(gps_rec_buffer)
+gps_data.gps_msg_analysis(gps_rec_buffer)
+gps_data_ret = gps_data.gps_typeswitch()
 
-	gps_msg = LatLonAlt()
-	gps_msg.latitude = gps_data_ret[0]
-	gps_msg.longitude = gps_data_ret[1]
-	gps_msg.altitude = gps_data_ret[2]
+gps_msg = LatLonAlt()
+gps_msg.latitude = gps_data_ret[0]
+gps_msg.longitude = gps_data_ret[1]
+gps_msg.altitude = gps_data_ret[2]
 
-	print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
+print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
 
-	x, y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
-	print(x)
-	print(y)
+x, y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
+deep = gps_msg.altitude
+print(x)
+print(y)
+print(deep)
