@@ -10,7 +10,7 @@ from PyQt5.QtGui import QImage, QPixmap
 from PyQt5 import QtCore
 from time import sleep
 from my_thread import MyThread
-import rectask
+import task
 import gps
 
 
