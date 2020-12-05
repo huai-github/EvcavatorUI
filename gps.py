@@ -4,6 +4,13 @@ import math
 import runUI
 
 
+lat = []
+lon = []
+alt = []
+x = 0
+y = 0
+deep = 0
+
 
 def LatLon2XY(latitude, longitude):
     a = 6378137.0
@@ -46,7 +53,7 @@ class GPSINSData:
     def __init__(self):
         self.head = [b'\xaa', b'\x33'] 	# 2B deviation 0-2     b'3' == b'\x33'
         self.length = [0]*2				# 2B deviation 4-6
-        self.latitude =[0]*8  			# 8B deviation 24
+        self.latitude = [0]*8  			# 8B deviation 24
         self.longitude = [0]*8  		# 8B deviation 32
         self.altitude = [0]*8  			# 8B deviation 40
         self.checksum = 0	 			# 2B deviation 136
@@ -59,11 +66,14 @@ class GPSINSData:
             self.longitude = recbuff[32:40]
             self.altitude = recbuff[40:48]
             self.checksum = recbuff[136:138]
-            self.checksum = self.checksum[0] + self.checksum[1] # 将checksum 2字节合并
-            # print(self.checksum)
+            self.checksum = self.checksum[0] + self.checksum[1]  # 将checksum 2字节合并
+            global lat, lon, alt
+            lat = self.latitude
+            lon = self.longitude
+            alt = self.altitude
 
-            for i in range(len(recbuff) -2):
-                recbuff[i] = int.from_bytes(recbuff[i], byteorder='big', signed=False)  # bytes转int
+            for i in range(len(recbuff) - 2):
+                recbuff[i] = int.from_bytes(recbuff[i], byteorder='little', signed=False)  # bytes转int
                 self.xor_check = self.xor_check ^ recbuff[i]
 
             self.xor_check = self.xor_check.to_bytes(length=2, byteorder='little', signed=False)
@@ -75,6 +85,7 @@ class GPSINSData:
                 else:
                     print("The signal of gps is unstable！\r\n")
                     # return
+                # return self.latitude, self.longitude, self.altitude
             else:
                 print("checksum error!!!\r\n")
                 return
@@ -97,16 +108,11 @@ class GPSINSData:
         return gps_switch_lat.double, gps_switch_lon.double, gps_switch_alt.double
 
 
-x = 0
-y = 0
-deep = 0
-
-
 def gps_thread_fun():
     GPS_COM = "com21"
     gps_rec_buffer = []
     gps_data = GPSINSData()
-    gps_com = SerialPortCommunication(GPS_COM, 115200, 0.5)
+    gps_com = SerialPortCommunication(GPS_COM, 115200, 0.1)
     gps_com.rec_data(gps_rec_buffer, 138)  # int
     gps_data.gps_msg_analysis(gps_rec_buffer)
     gps_data_ret = gps_data.gps_typeswitch()
@@ -120,7 +126,9 @@ def gps_thread_fun():
     global x, y, deep
     x, y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
     deep = gps_msg.altitude
+
     # print("x：%s\ty：%s\tdeep：%s" % (x, y, deep))
+
 
 ##############################################################################################################
 # GPS_COM = "com21"

@@ -22,7 +22,7 @@ class SerialPortCommunication():
 		print(self.com.port)  # 读或者写端口
 		print(self.com.baudrate)  # 波特率
 		print(self.com.bytesize)  # 字节大小
-		print(self.com.parity)  # 校验位
+		print(self.com.parity)    # 校验位
 		print(self.com.stopbits)  # 停止位
 		print(self.com.timeout)  # 读超时设置
 		print(self.com.writeTimeout)  # 写超时
@@ -54,14 +54,14 @@ class SerialPortCommunication():
 	# 使用readline()时应该注意：打开串口时应该指定超时，否则如果串口没有收到新行，则会一直等待。
 	# 如果没有超时，readline会报异常。
 	def read_line(self):
+		"""b'$\x00\x01\x08\x01\x00\x00\n'"""
 		return self.com.readline()
 
-	def send_data(self, send_buffer, send_len):
-		for i in range(send_len):
-			data_byte = int(send_buffer[i]).to_bytes(length=1, byteorder='big', signed=True)
-			self.com.write(data_byte)
+	def send_data(self, send_buffer):
+		self.com.write(send_buffer)
 
 	def rec_data(self, rec_buff, rec_len, way=0):
+		"""[b'$', b'\x00', b'\x01', b'\x08', b'\x01', b'\x00', b'\x00', b'\n']"""
 		while True:
 			try:
 				if self.com.in_waiting:  # in_waiting返回接收缓冲区的字节数
@@ -86,15 +86,15 @@ class SerialPortCommunication():
 # _4G_COM = "com21"
 #
 # if __name__ == '__main__':
-# 	com_rec_buf = []
-# 	# com_send_buf = [12, 22, 33, 44, 55, 66, 77, 88] # test
+# 	# com_rec_buf = []
+# 	com_send_buf = [0x12, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88] # test
 #
 # 	test_port = SerialPortCommunication(_4G_COM, 115200, 0.5)
 # 	if ret:
-# 		test_port.rec_data(com_rec_buf, 138, 0)
-# 		# com_rec_buf = test_port.read_line()
-# 		print(com_rec_buf)
-# 		print(type(com_rec_buf[0]))
+# 		# test_port.rec_data(com_rec_buf, 138, 0)
+# 		# # com_rec_buf = test_port.read_line()
+# 		# print(com_rec_buf)
+# 		# print(type(com_rec_buf[0]))
 #
-# 	# test_port.send_data(com_send_buf, len(com_send_buf))
+# 		test_port.send_data(com_send_buf)
 # 	test_port.close_com()

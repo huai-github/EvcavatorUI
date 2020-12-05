@@ -14,7 +14,7 @@ import rectask
 import gps
 
 
-class UIFreshThread: 	# 界面刷新线程
+class UIFreshThread(): 	# 界面刷新线程
 	def __init__(self):
 		rectask_threadLock.acquire()
 		# self.startX = w // 2  # from could
@@ -167,16 +167,16 @@ rectask_threadLock = threading.Lock()
 
 if __name__ == "__main__":
 	gps_thread = threading.Thread(target=gps.gps_thread_fun)
-	# rectask_thread = threading.Thread(target=rectask.rectask_thread_fun)
+	rectask_thread = threading.Thread(target=rectask.task_rec_thread_func)
 
 	gps_thread.setDaemon(True)  # 守护线程,当主进程结束后,子线程也会随之结束
-	# rectask_thread.setDaemon(True)
+	rectask_thread.setDaemon(True)
 
 	gps_thread.start()			# 启动线程
-	# rectask_thread.start()
+	rectask_thread.start()
 
 	gps_thread.join()			# 设置主线程等待子线程结束
-	# rectask_thread.join()
+	rectask_thread.join()
 
 	app = QApplication(sys.argv)
 	mainWindow = MyWindows()
