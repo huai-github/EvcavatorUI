@@ -13,33 +13,41 @@ from my_thread import MyThread
 import task
 import gps
 
+h = 480  # 画布大小
+w = 550
 
-class UIFreshThread(): 	# 界面刷新线程
+g_4G_COM = "com21"
+g_GPS_COM = "com5"
+
+gps_threadLock = threading.Lock()
+rectask_threadLock = threading.Lock()
+heart_send_threadLock = threading.Lock()
+heart_rec_threadLock = threading.Lock()
+
+class UIFreshThread(object): 	# 界面刷新线程
 	def __init__(self):
 		rectask_threadLock.acquire()
-		# self.startX = w // 2  # from could
-		# self.startY = 50
-		# self.endX = w // 2
-		# self.endY = 400
-		# self.Interval = 120
-		self.startX = int(rectask.x1_d)	 # from could
-		self.startY = int(rectask.y1_d)
-		self.endX = int(rectask.x2_d)
-		self.endY = int(rectask.y2_d)
+
+		# 减去一个初始值？？？？
+		self.startX = int(task.g_x1_d)	 # from could
+		self.startY = int(task.g_y1_d)
+		self.endX = int(task.g_x2_d)
+		self.endY = int(task.g_y2_d)
 		self.Interval = 120
 		rectask_threadLock.release()
 
 		self.nowX = 0  # from gps
 		self.nowY = 0
-		self.deep = 0
+		self.deep = 0.0
 
-	def __call__(self):
+	def __call__(self):  # 调用实例本身 ——>> MyThread(self.__thread,....
 		# while True:
 		gps_threadLock.acquire()
-		self.nowX = int(gps.x - 4076000)  # from gps
-		self.nowY = int(gps.y - 515000)
-		self.deep = int(gps.deep)
-		# sleep(1)
+		self.nowX = int(gps.g_x - 4076000)  # from gps
+		self.nowY = int(gps.g_y - 515000)
+		self.deep = gps.g_deep
+
+		sleep(1)
 		gps_threadLock.release()
 
 	def get_msg_xy(self):
@@ -49,13 +57,13 @@ class UIFreshThread(): 	# 界面刷新线程
 		return self.deep
 
 	def get_msg_startXY(self):
-		return (self.startX, self.startY)
+		return self.startX, self.startY
 
 	def get_msg_endXY(self):
-		return (self.endX, self.endY)
+		return self.endX, self.endY
 
 	def get_msg_nowXY(self):
-		return (self.nowX, self.nowY)
+		return self.nowX, self.nowY
 
 
 class MyWindows(QWidget, UI.Ui_Form):
@@ -71,7 +79,7 @@ class MyWindows(QWidget, UI.Ui_Form):
 		self.set_slot()
 		self.__thread = UIFreshThread()  # 开启线程(同时将这个线程类作为一个属性)
 		MyThread(self.__thread, (), name='UIFreshThread', daemon=True).start()
-		self.__timer.start(1000)  # ms 刷新一次
+		self.__timer.start(1000)  # ms
 		self.DeepList = []
 		self.NumList = []
 
@@ -106,12 +114,12 @@ class MyWindows(QWidget, UI.Ui_Form):
 	def rightWindow(self, img, deep):
 		img[::] = 255  # 设置画布颜色
 
-		if len(self.NumList) >= 15:
+		if len(self.NumList) >= 15:		# 最多显示15条柱状图
 			self.DeepList.pop(0)
 			self.NumList.pop(0)
 
 		self.DeepList.append(deep)
-		self.NumList.append(1)
+		self.NumList.append(' ')
 
 		# 将self.DeepList中的数据转化为int类型
 		self.DeepList = list(map(int, self.DeepList))
@@ -120,14 +128,13 @@ class MyWindows(QWidget, UI.Ui_Form):
 		self.x = np.arange(len(self.NumList)) + 1
 		self.y = np.array(self.DeepList)
 
-		# print(self.DeepList)
 		colors = ["g" if i > 0 else "r" for i in self.DeepList]
 		plt.clf()
 		plt.bar(range(len(self.NumList)), self.DeepList, tick_label=self.NumList, color=colors, width=0.5)
 
 		# 在柱体上显示数据
 		for a, b in zip(self.x, self.y):
-			plt.text(a - 1, b, '%d' % b, ha='center', va='bottom')
+			plt.text(a - 1, b, '%.4f' % b, ha='center', va='bottom')
 
 		# 画图
 		self.canvas.draw()
@@ -153,32 +160,30 @@ class MyWindows(QWidget, UI.Ui_Form):
 		self.nowXY.setText("(%d, %d)" % (nowX, nowY))
 
 	def update(self):
-		self.leftWindow(self.imgLine, *self.__thread.get_msg_xy())
-		self.rightWindow(self.imgBar, self.__thread.get_msg_deep())
+		if gps.g_worked_flag:
+			gps.g_worked_flag = False
+			self.rightWindow(self.imgBar, self.__thread.get_msg_deep())
+			self.leftWindow(self.imgLine, *self.__thread.get_msg_xy())
+
 		self.showStartXY(*self.__thread.get_msg_startXY())
 		self.showEndXY(*self.__thread.get_msg_endXY())
 		self.showNowXY(*self.__thread.get_msg_nowXY())
 
 
-h = 480  # 画布大小
-w = 550
-gps_threadLock = threading.Lock()
-rectask_threadLock = threading.Lock()
-
 if __name__ == "__main__":
+	# app = QApplication(sys.argv)
+
 	gps_thread = threading.Thread(target=gps.gps_thread_fun)
-	rectask_thread = threading.Thread(target=rectask.task_rec_thread_func)
+	heart_send_thread = threading.Thread(target=task.heart_send_thread_func)
+	# rectask_thread = threading.Thread(target=task.task_rec_thread_func)
 
-	gps_thread.setDaemon(True)  # 守护线程,当主进程结束后,子线程也会随之结束
-	rectask_thread.setDaemon(True)
+	gps_thread.start()  # 启动线程
+	heart_send_thread.start()
+	# rectask_thread.start()
 
-	gps_thread.start()			# 启动线程
-	rectask_thread.start()
+	# gps_thread.join()			# 设置主线程等待子线程结束
+	# rectask_thread.join()
 
-	gps_thread.join()			# 设置主线程等待子线程结束
-	rectask_thread.join()
-
-	app = QApplication(sys.argv)
-	mainWindow = MyWindows()
-	mainWindow.show()
-	sys.exit(app.exec_())
+	# mainWindow = MyWindows()
+	# mainWindow.show()
+	# sys.exit(app.exec_())

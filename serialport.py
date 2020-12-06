@@ -1,6 +1,7 @@
 import serial
 import serial.tools.list_ports
 
+
 class SerialPortCommunication():
 	def __init__(self, com, bps, timeout):
 		self.port = com

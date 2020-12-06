@@ -3,13 +3,13 @@ from tools import *
 import math
 import runUI
 
-
-lat = []
-lon = []
-alt = []
-x = 0
-y = 0
-deep = 0
+g_lat = []
+g_lon = []
+g_alt = []
+g_x = 0
+g_y = 0
+g_deep = 0
+g_worked_flag = False
 
 
 def LatLon2XY(latitude, longitude):
@@ -19,8 +19,7 @@ def LatLon2XY(latitude, longitude):
     # alpha = 1 / 298.257223563
     e2 = 0.0066943799013
     # epep = 0.00673949674227
-
-
+    
     #将经纬度转换为弧度
     latitude2Rad = (math.pi / 180.0) * latitude
 
@@ -42,14 +41,14 @@ def LatLon2XY(latitude, longitude):
     return x, y
 
 
-class LatLonAlt:
+class LatLonAlt(object):
     def __init__(self):
         self.latitude = 0
         self.longitude = 0
         self.altitude = 0
 
 
-class GPSINSData:
+class GPSINSData(object):
     def __init__(self):
         self.head = [b'\xaa', b'\x33'] 	# 2B deviation 0-2     b'3' == b'\x33'
         self.length = [0]*2				# 2B deviation 4-6
@@ -67,12 +66,12 @@ class GPSINSData:
             self.altitude = recbuff[40:48]
             self.checksum = recbuff[136:138]
             self.checksum = self.checksum[0] + self.checksum[1]  # 将checksum 2字节合并
-            global lat, lon, alt
-            lat = self.latitude
-            lon = self.longitude
-            alt = self.altitude
+            global g_lat, g_lon, g_alt
+            g_lat = self.latitude
+            g_lon = self.longitude
+            g_alt = self.altitude
 
-            for i in range(len(recbuff) - 2):
+            for i in range(len(recbuff) - 2):  # 校验
                 recbuff[i] = int.from_bytes(recbuff[i], byteorder='little', signed=False)  # bytes转int
                 self.xor_check = self.xor_check ^ recbuff[i]
 
@@ -109,33 +108,34 @@ class GPSINSData:
 
 
 def gps_thread_fun():
-    GPS_COM = "com21"
-    gps_rec_buffer = []
-    gps_data = GPSINSData()
-    gps_com = SerialPortCommunication(GPS_COM, 115200, 0.1)
-    gps_com.rec_data(gps_rec_buffer, 138)  # int
-    gps_data.gps_msg_analysis(gps_rec_buffer)
-    gps_data_ret = gps_data.gps_typeswitch()
-    runUI.gps_threadLock.acquire()      # 加锁
-    gps_msg = LatLonAlt()
-    gps_msg.latitude = gps_data_ret[0]
-    gps_msg.longitude = gps_data_ret[1]
-    gps_msg.altitude = gps_data_ret[2]
-    runUI.gps_threadLock.release()      # 解锁
-    # print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
-    global x, y, deep
-    x, y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
-    deep = gps_msg.altitude
+    while True:
+        runUI.gps_threadLock.acquire()      # 加锁
+        gps_rec_buffer = []
+        gps_data = GPSINSData()
+        gps_msg = LatLonAlt()
+        gps_com = SerialPortCommunication(runUI.g_GPS_COM, 115200, 0.1)
+        gps_com.rec_data(gps_rec_buffer, 138)  # int
+        gps_com.close_com()
+        gps_data.gps_msg_analysis(gps_rec_buffer)
+        gps_msg.latitude, gps_msg.longitude, gps_msg.altitude = gps_data.gps_typeswitch()
 
-    # print("x：%s\ty：%s\tdeep：%s" % (x, y, deep))
+        print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
+        global g_x, g_y, g_deep
+        g_x, g_y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
+        g_deep = gps_msg.altitude
+        global g_worked_flag
+        g_worked_flag = True  # 测试用
+
+        runUI.gps_threadLock.release()      # 解锁
+    # print("x：%s\ty：%s\tdeep：%s" % (g_x, g_y, g_deep))
 
 
 ##############################################################################################################
-# GPS_COM = "com21"
+# runUI.g_GPS_COM = "com21"
 # # if __name__ == "__main__":
 # gps_rec_buffer = []
 # gps_data = GPSINSData()
-# gps_com = SerialPortCommunication(GPS_COM, 115200, 0.5)
+# gps_com = SerialPortCommunication(runUI.g_GPS_COM, 115200, 0.5)
 # gps_com.rec_data(gps_rec_buffer, 138)  # int
 # print(gps_rec_buffer)
 # gps_data.gps_msg_analysis(gps_rec_buffer)
