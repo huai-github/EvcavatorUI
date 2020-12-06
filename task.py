@@ -20,6 +20,7 @@ g_send_heart_flag = False
 
 g_task_reced_flag = False
 
+
 class SendHeadStruct(object):
 	"""上传头部"""
 
@@ -154,6 +155,7 @@ def heart_rec_thead_func():
 				print("heart succ")
 		runUI.heart_rec_threadLock.release()
 
+
 def heart_send_thread_func():
 	com_4g = serialport.SerialPortCommunication(runUI.g_4G_COM, 115200, 0)
 	heart_send_buf = [0x36, 0x00, 0x01, 0x08, 0x01, 0x00, 0x00, 0x0a]
@@ -164,14 +166,15 @@ def heart_send_thread_func():
 		heart_send_buf[4] = heart_send_buf[4] + 0x01  # seqnum
 		runUI.heart_send_threadLock.release()
 
-def task_send_thread_func():
+
+def msg_send_thread_func():
 	send_head_buf = [0] * 8
 	send_body_buf = [0] * 40
 	com_4g = serialport.SerialPortCommunication(runUI.g_4G_COM, 115200, 0.5)
 	head = SendHeadStruct()
 	body = SendBodyStruct()
 
-	for i in range(100):  # 条件？？？
+	for i in range(10):  # 条件？？？
 		send_head_buf[0] = head.start
 		send_head_buf[1] = head.type
 		send_head_buf[2] = head.id
@@ -190,6 +193,7 @@ def task_send_thread_func():
 		body.seqnum = body.seqnum + 0x01
 		send_body_buf[4] = body.seqnum
 		# gps接收的是bytes类型，这里要转换成int类型
+		# print(gps.g_lat)
 		for a in range(8):
 			body.x[a] = int.from_bytes(gps.g_lat[a], byteorder='little', signed=False)
 		for b in range(8):
@@ -203,18 +207,14 @@ def task_send_thread_func():
 		send_body_buf[29:38] = body.reserved
 		body.checksum = sum(send_body_buf[0:38]) & 0xff
 		send_body_buf[38] = body.checksum
-
 		send_body_buf[39] = body.end
-
 		com_4g.send_data(send_head_buf)
 		com_4g.send_data(send_body_buf)
 
 
 ##############################################################################################################
-if __name__ == "__main__":
-	# heart_rec__thead_func()
-	# gps.gps_thread_fun()
-	heart_send_thread_func()
-	# if gps.g_worked_flag:
-	# 	gps.g_worked_flag = False
-	# 	task_send_thread_func()
+# if __name__ == "__main__":
+# 	gps.gps_thread_fun()
+# 	if gps.g_worked_flag:
+# 		gps.g_worked_flag = False
+# 	msg_send_thread_func()

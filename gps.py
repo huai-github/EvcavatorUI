@@ -1,11 +1,12 @@
 from serialport import SerialPortCommunication
 from tools import *
+import time
 import math
 import runUI
 
-g_lat = []
-g_lon = []
-g_alt = []
+g_lat = [0]*8
+g_lon = [0]*8
+g_alt = [0]*8
 g_x = 0
 g_y = 0
 g_deep = 0
@@ -76,7 +77,6 @@ class GPSINSData(object):
                 self.xor_check = self.xor_check ^ recbuff[i]
 
             self.xor_check = self.xor_check.to_bytes(length=2, byteorder='little', signed=False)
-            # print((self.xor_check))
 
             if self.xor_check == self.checksum:  # 数据包异或校验通过
                 if recbuff[104] == b'\x04':  # gps信号稳定
@@ -84,7 +84,6 @@ class GPSINSData(object):
                 else:
                     print("The signal of gps is unstable！\r\n")
                     # return
-                # return self.latitude, self.longitude, self.altitude
             else:
                 print("checksum error!!!\r\n")
                 return
@@ -126,7 +125,7 @@ def gps_thread_fun():
         global g_worked_flag
         g_worked_flag = True  # 测试用
 
-        runUI.gps_threadLock.release()      # 解锁
+        # runUI.gps_threadLock.release()      # 解锁
     # print("x：%s\ty：%s\tdeep：%s" % (g_x, g_y, g_deep))
 
 

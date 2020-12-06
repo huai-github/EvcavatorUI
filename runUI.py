@@ -24,6 +24,7 @@ rectask_threadLock = threading.Lock()
 heart_send_threadLock = threading.Lock()
 heart_rec_threadLock = threading.Lock()
 
+
 class UIFreshThread(object): 	# 界面刷新线程
 	def __init__(self):
 		rectask_threadLock.acquire()
@@ -174,15 +175,12 @@ if __name__ == "__main__":
 	# app = QApplication(sys.argv)
 
 	gps_thread = threading.Thread(target=gps.gps_thread_fun)
-	heart_send_thread = threading.Thread(target=task.heart_send_thread_func)
-	# rectask_thread = threading.Thread(target=task.task_rec_thread_func)
+	send_msg_thread = threading.Thread(target=task.msg_send_thread_func)
 
-	gps_thread.start()  # 启动线程
-	heart_send_thread.start()
-	# rectask_thread.start()
+	gps_thread.start()  	# 启动线程
+	sleep(0.5)
+	send_msg_thread.start()
 
-	# gps_thread.join()			# 设置主线程等待子线程结束
-	# rectask_thread.join()
 
 	# mainWindow = MyWindows()
 	# mainWindow.show()
