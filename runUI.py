@@ -21,6 +21,7 @@ g_GPS_COM = "com5"
 
 gps_threadLock = threading.Lock()
 rectask_threadLock = threading.Lock()
+send_msg_threadLock = threading.Lock()
 heart_send_threadLock = threading.Lock()
 heart_rec_threadLock = threading.Lock()
 
@@ -30,22 +31,21 @@ class UIFreshThread(object): 	# 界面刷新线程
 		rectask_threadLock.acquire()
 
 		# 减去一个初始值？？？？
-		self.startX = int(task.g_x1_d)	 # from could
-		self.startY = int(task.g_y1_d)
-		self.endX = int(task.g_x2_d)
-		self.endY = int(task.g_y2_d)
+		self.startX = task.g_x1_d	 # from could  huatuquz
+		self.startY = task.g_y1_d
+		self.endX = task.g_x2_d
+		self.endY = task.g_y2_d
 		self.Interval = 120
 		rectask_threadLock.release()
 
 		self.nowX = 0  # from gps
 		self.nowY = 0
-		self.deep = 0.0
+		self.deep = 0
 
 	def __call__(self):  # 调用实例本身 ——>> MyThread(self.__thread,....
-		# while True:
 		gps_threadLock.acquire()
-		self.nowX = int(gps.g_x - 4076000)  # from gps
-		self.nowY = int(gps.g_y - 515000)
+		self.nowX = gps.g_x - 4076000 # from gps
+		self.nowY = gps.g_y - 515000
 		self.deep = gps.g_deep
 
 		sleep(1)
@@ -89,10 +89,10 @@ class MyWindows(QWidget, UI.Ui_Form):
 
 	def leftWindow(self, img, startX, startY, endX, endY, Interval, nowX, nowY):
 		img[...] = 255
-		cv2.line(img, (startX, startY), (endX, endY), (0, 255, 0), 1)
-		cv2.line(img, (startX + Interval, startY), (endX + Interval, endY), (0, 0, 255), 3)
-		cv2.line(img, (endX - Interval, startY), (endX - Interval, endY), (0, 0, 255), 3)
-		cv2.circle(img, (nowX, nowY), 6, (255, 0, 0), -1)
+		cv2.line(img, (int(startX), int(startY)), (int(endX), int(endY)), (0, 255, 0), 1)
+		cv2.line(img, (int(startX + Interval), int(startY)), (int(endX + Interval), int(endY)), (0, 0, 255), 3)
+		cv2.line(img, (int(endX - Interval), int(startY)), (int(endX - Interval), int(endY)), (0, 0, 255), 3)
+		cv2.circle(img, (int(nowX), int(nowY)), 6, (255, 0, 0), -1)
 		BorderReminderLedXY = (530, 460)  # 边界指示灯位置 界内绿色
 		BorderReminderTextXY = (230, 470)
 		cv2.circle(img, BorderReminderLedXY, 12, (0, 255, 0), -1)
@@ -115,7 +115,7 @@ class MyWindows(QWidget, UI.Ui_Form):
 	def rightWindow(self, img, deep):
 		img[::] = 255  # 设置画布颜色
 
-		if len(self.NumList) >= 15:		# 最多显示15条柱状图
+		if len(self.NumList) >= 5:		# 最多显示5条柱状图
 			self.DeepList.pop(0)
 			self.NumList.pop(0)
 
@@ -123,7 +123,7 @@ class MyWindows(QWidget, UI.Ui_Form):
 		self.NumList.append(' ')
 
 		# 将self.DeepList中的数据转化为int类型
-		self.DeepList = list(map(int, self.DeepList))
+		self.DeepList = list(map(float, self.DeepList))
 
 		# 将x,y轴转化为矩阵式
 		self.x = np.arange(len(self.NumList)) + 1
@@ -152,36 +152,32 @@ class MyWindows(QWidget, UI.Ui_Form):
 		self.rightLabel.setPixmap(pixmapR)
 
 	def showStartXY(self, startX, startY):
-		self.startXY.setText("(%d, %d)" % (startX, startY))
+		self.startXY.setText("(%f, %f)" % (startX, startY))
 
 	def showEndXY(self, endX, endY):
-		self.endXY.setText("(%d, %d)" % (endX, endY))
+		self.endXY.setText("(%f, %f)" % (endX, endY))
 
 	def showNowXY(self, nowX, nowY):
-		self.nowXY.setText("(%d, %d)" % (nowX, nowY))
+		self.nowXY.setText("(%f, %f)" % (nowX, nowY))
 
 	def update(self):
-		if gps.g_worked_flag:
-			gps.g_worked_flag = False
-			self.rightWindow(self.imgBar, self.__thread.get_msg_deep())
-			self.leftWindow(self.imgLine, *self.__thread.get_msg_xy())
-
+		self.rightWindow(self.imgBar, self.__thread.get_msg_deep())
+		self.leftWindow(self.imgLine, *self.__thread.get_msg_xy())
 		self.showStartXY(*self.__thread.get_msg_startXY())
 		self.showEndXY(*self.__thread.get_msg_endXY())
 		self.showNowXY(*self.__thread.get_msg_nowXY())
 
 
 if __name__ == "__main__":
-	# app = QApplication(sys.argv)
+	app = QApplication(sys.argv)
 
 	gps_thread = threading.Thread(target=gps.gps_thread_fun)
 	send_msg_thread = threading.Thread(target=task.msg_send_thread_func)
 
 	gps_thread.start()  	# 启动线程
-	sleep(0.5)
+	sleep(1)
 	send_msg_thread.start()
 
-
-	# mainWindow = MyWindows()
-	# mainWindow.show()
-	# sys.exit(app.exec_())
+	mainWindow = MyWindows()
+	mainWindow.show()
+	sys.exit(app.exec_())

@@ -4,6 +4,7 @@ import time
 import math
 import runUI
 
+
 g_lat = [0]*8
 g_lon = [0]*8
 g_alt = [0]*8
@@ -52,10 +53,10 @@ class LatLonAlt(object):
 class GPSINSData(object):
     def __init__(self):
         self.head = [b'\xaa', b'\x33'] 	# 2B deviation 0-2     b'3' == b'\x33'
-        self.length = [0]*2				# 2B deviation 4-6
-        self.latitude = [0]*8  			# 8B deviation 24
-        self.longitude = [0]*8  		# 8B deviation 32
-        self.altitude = [0]*8  			# 8B deviation 40
+        self.length = [b'\x00']*2				# 2B deviation 4-6
+        self.latitude = [b'\x00']*8  			# 8B deviation 24
+        self.longitude = [b'\x00']*8  		# 8B deviation 32
+        self.altitude = [b'\x00']*8  			# 8B deviation 40
         self.checksum = 0	 			# 2B deviation 136
         self.xor_check = 0         		# 定义异或校验返回值
 
@@ -67,6 +68,7 @@ class GPSINSData(object):
             self.altitude = recbuff[40:48]
             self.checksum = recbuff[136:138]
             self.checksum = self.checksum[0] + self.checksum[1]  # 将checksum 2字节合并
+
             global g_lat, g_lon, g_alt
             g_lat = self.latitude
             g_lon = self.longitude
@@ -83,24 +85,24 @@ class GPSINSData(object):
                     print("The signal of gps is stable！\r\n")
                 else:
                     print("The signal of gps is unstable！\r\n")
-                    # return
             else:
                 print("checksum error!!!\r\n")
                 return
         else:
             print("data head error!!!\r\n")
-            return
+            # return
 
     def gps_typeswitch(self):
-        latitude = self.latitude[0] + self.latitude[1] +self.latitude[2] +self.latitude[3] +self.latitude[4] +self.latitude[5] +self.latitude[6] +self.latitude[7]
-        longitude = self.longitude[0] + self.longitude[1] +self.longitude[2] +self.longitude[3] +self.longitude[4] +self.longitude[5] +self.longitude[6] +self.longitude[7]
-        altitude = self.altitude[0] + self.altitude[1] +self.altitude[2] +self.altitude[3] +self.altitude[4] +self.altitude[5] +self.altitude[6] +self.altitude[7]
-
         gps_switch_lat = TypeSwitchUnion()
-        gps_switch_lat.char = latitude
         gps_switch_lon = TypeSwitchUnion()
-        gps_switch_lon.char = longitude
         gps_switch_alt = TypeSwitchUnion()
+        # 字符串拼接
+        latitude = self.latitude[0] + self.latitude[1] + self.latitude[2] + self.latitude[3] + self.latitude[4] + self.latitude[5] + self.latitude[6] + self.latitude[7]
+        longitude = self.longitude[0] + self.longitude[1] + self.longitude[2] + self.longitude[3] + self.longitude[4] + self.longitude[5] + self.longitude[6] + self.longitude[7]
+        altitude = self.altitude[0] + self.altitude[1] + self.altitude[2] + self.altitude[3] + self.altitude[4] + self.altitude[5] + self.altitude[6] + self.altitude[7]
+
+        gps_switch_lat.char = latitude
+        gps_switch_lon.char = longitude
         gps_switch_alt.char = altitude
 
         return gps_switch_lat.double, gps_switch_lon.double, gps_switch_alt.double
@@ -108,24 +110,23 @@ class GPSINSData(object):
 
 def gps_thread_fun():
     while True:
-        runUI.gps_threadLock.acquire()      # 加锁
         gps_rec_buffer = []
         gps_data = GPSINSData()
         gps_msg = LatLonAlt()
-        gps_com = SerialPortCommunication(runUI.g_GPS_COM, 115200, 0.1)
+        gps_com = SerialPortCommunication(runUI.g_GPS_COM, 115200, 0.2) # 5Hz
         gps_com.rec_data(gps_rec_buffer, 138)  # int
         gps_com.close_com()
+        runUI.gps_threadLock.acquire()  # 加锁
         gps_data.gps_msg_analysis(gps_rec_buffer)
         gps_msg.latitude, gps_msg.longitude, gps_msg.altitude = gps_data.gps_typeswitch()
-
-        print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
-        global g_x, g_y, g_deep
+        # print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
+        global g_x, g_y, g_deep, g_worked_flag
         g_x, g_y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
         g_deep = gps_msg.altitude
-        global g_worked_flag
         g_worked_flag = True  # 测试用
+        runUI.gps_threadLock.release()      # 解锁
 
-        # runUI.gps_threadLock.release()      # 解锁
+
     # print("x：%s\ty：%s\tdeep：%s" % (g_x, g_y, g_deep))
 
 

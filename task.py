@@ -105,38 +105,36 @@ def task_rec_thread_func():
 	g_rec_task_flag = True  # 开始接收任务，停止接收心跳
 	g_rec_heart_flag = False
 
-	if g_rec_task_flag:
-		g_rec_task_flag = False # 还需要声明吗？？？
-		task = RecTask()
-		x1_union = TypeSwitchUnion()
-		y1_union = TypeSwitchUnion()
-		h1_union = TypeSwitchUnion()
-		w1_union = TypeSwitchUnion()
-		x2_union = TypeSwitchUnion()
-		y2_union = TypeSwitchUnion()
-		h2_union = TypeSwitchUnion()
-		w2_union = TypeSwitchUnion()
-		com_4g = serialport.SerialPortCommunication(runUI.g_4G_COM, 115200, 0.5)  # read_line必须设置超时时间
-		task_buffer = com_4g.read_line()  # type = bytes
-		com_4g.close_com()
+	task = RecTask()
+	x1_union = TypeSwitchUnion()
+	y1_union = TypeSwitchUnion()
+	h1_union = TypeSwitchUnion()
+	w1_union = TypeSwitchUnion()
+	x2_union = TypeSwitchUnion()
+	y2_union = TypeSwitchUnion()
+	h2_union = TypeSwitchUnion()
+	w2_union = TypeSwitchUnion()
+	com_4g = serialport.SerialPortCommunication(runUI.g_4G_COM, 115200, 0.5)  # read_line必须设置超时时间
+	task_buffer = com_4g.read_line()  # type = bytes
+	com_4g.close_com()
 
-		task.task_msg_analysis(task_buffer)
-		no, x1_union.char, y1_union.char, h1_union.char, w1_union.char, \
-			x2_union.char, y2_union.char, h2_union.char, w2_union.char = task.section_analysis()  # 返回一个直线段
-		# 联合体转换数据类型
-		global g_x1_d, g_y1_d, g_h1_d, g_w1_s, g_x2_d, g_y2_d, g_h2_d, g_w2_s
-		g_x1_d = x1_union.int
-		g_y1_d = y1_union.int
-		g_h1_d = h1_union.int
-		g_w1_s = w1_union.short
-		g_x2_d = x2_union.int
-		g_y2_d = y2_union.int
-		g_h2_d = h2_union.int
-		g_w2_s = w2_union.short
-		print(g_x1_d)
-		print(g_y1_d)
-		print(g_h1_d)
-		print(g_w1_s)
+	task.task_msg_analysis(task_buffer)
+	no, x1_union.char, y1_union.char, h1_union.char, w1_union.char, \
+		x2_union.char, y2_union.char, h2_union.char, w2_union.char = task.section_analysis()  # 返回一个直线段
+	# 联合体转换数据类型
+	global g_x1_d, g_y1_d, g_h1_d, g_w1_s, g_x2_d, g_y2_d, g_h2_d, g_w2_s
+	g_x1_d = x1_union.int
+	g_y1_d = y1_union.int
+	g_h1_d = h1_union.int
+	g_w1_s = w1_union.short
+	g_x2_d = x2_union.int
+	g_y2_d = y2_union.int
+	g_h2_d = h2_union.int
+	g_w2_s = w2_union.short
+	print(g_x1_d)
+	print(g_y1_d)
+	print(g_h1_d)
+	print(g_w1_s)
 
 
 	# runUI.rectask_threadLock.release()  # 解锁
@@ -168,48 +166,53 @@ def heart_send_thread_func():
 
 
 def msg_send_thread_func():
-	send_head_buf = [0] * 8
-	send_body_buf = [0] * 40
-	com_4g = serialport.SerialPortCommunication(runUI.g_4G_COM, 115200, 0.5)
-	head = SendHeadStruct()
-	body = SendBodyStruct()
+	# 每接受到一帧gps数据发送一次
+	while True:
+		if gps.g_worked_flag:
+			gps.g_worked_flag = False
+			send_head_buf = [0] * 8
+			send_body_buf = [0] * 40
+			com_4g = serialport.SerialPortCommunication(runUI.g_4G_COM, 115200, 0)
+			head = SendHeadStruct()
+			body = SendBodyStruct()
+			runUI.send_msg_threadLock.acquire()		# 加锁
+			send_head_buf[0] = head.start
+			send_head_buf[1] = head.type
+			send_head_buf[2] = head.id
+			send_head_buf[3] = head.len
+			head.seqnum = head.seqnum + 0x01
+			send_head_buf[4] = head.seqnum
+			send_head_buf[5] = head.reserved
+			head.sumcheck = sum(send_head_buf[0:6])
+			send_head_buf[6] = head.sumcheck
+			send_head_buf[7] = head.end
 
-	for i in range(10):  # 条件？？？
-		send_head_buf[0] = head.start
-		send_head_buf[1] = head.type
-		send_head_buf[2] = head.id
-		send_head_buf[3] = head.len
-		head.seqnum = head.seqnum + 0x01
-		send_head_buf[4] = head.seqnum
-		send_head_buf[5] = head.reserved
-		head.sumcheck = sum(send_head_buf[0:6])
-		send_head_buf[6] = head.sumcheck
-		send_head_buf[7] = head.end
+			send_body_buf[0] = body.start
+			send_body_buf[1] = body.type
+			send_body_buf[2] = body.id
+			send_body_buf[3] = body.len
+			body.seqnum = body.seqnum + 0x01
+			send_body_buf[4] = body.seqnum
+			# gps接收的是bytes类型，这里要转换成int类型
 
-		send_body_buf[0] = body.start
-		send_body_buf[1] = body.type
-		send_body_buf[2] = body.id
-		send_body_buf[3] = body.len
-		body.seqnum = body.seqnum + 0x01
-		send_body_buf[4] = body.seqnum
-		# gps接收的是bytes类型，这里要转换成int类型
-		# print(gps.g_lat)
-		for a in range(8):
-			body.x[a] = int.from_bytes(gps.g_lat[a], byteorder='little', signed=False)
-		for b in range(8):
-			body.y[b] = int.from_bytes(gps.g_lon[b], byteorder='little', signed=False)
-		for c in range(8):
-			body.h[c] = int.from_bytes(gps.g_alt[c], byteorder='little', signed=False)
+			for a in range(8):
+				body.x[a] = int.from_bytes(gps.g_lat[a], byteorder='little', signed=False)
+			for b in range(8):
+				body.y[b] = int.from_bytes(gps.g_lon[b], byteorder='little', signed=False)
+			for c in range(8):
+				body.h[c] = int.from_bytes(gps.g_alt[c], byteorder='little', signed=False)
 
-		send_body_buf[5:13] = body.x
-		send_body_buf[13:21] = body.y
-		send_body_buf[21:29] = body.h
-		send_body_buf[29:38] = body.reserved
-		body.checksum = sum(send_body_buf[0:38]) & 0xff
-		send_body_buf[38] = body.checksum
-		send_body_buf[39] = body.end
-		com_4g.send_data(send_head_buf)
-		com_4g.send_data(send_body_buf)
+			send_body_buf[5:13] = body.x
+			send_body_buf[13:21] = body.y
+			send_body_buf[21:29] = body.h
+			send_body_buf[29:38] = body.reserved
+			body.checksum = sum(send_body_buf[0:38]) & 0xff
+			send_body_buf[38] = body.checksum
+			send_body_buf[39] = body.end
+			com_4g.send_data(send_head_buf)
+			com_4g.send_data(send_body_buf)
+			runUI.send_msg_threadLock.release()		# 解锁
+			com_4g.close_com()
 
 
 ##############################################################################################################
