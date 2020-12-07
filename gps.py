@@ -85,6 +85,7 @@ class GPSINSData(object):
                     print("The signal of gps is stable！\r\n")
                 else:
                     print("The signal of gps is unstable！\r\n")
+                    pass
             else:
                 print("checksum error!!!\r\n")
                 return
@@ -110,10 +111,10 @@ class GPSINSData(object):
 
 def gps_thread_fun():
     while True:
-        gps_rec_buffer = []
         gps_data = GPSINSData()
         gps_msg = LatLonAlt()
-        gps_com = SerialPortCommunication(runUI.g_GPS_COM, 115200, 0.2) # 5Hz
+        gps_com = SerialPortCommunication(runUI.g_GPS_COM, 115200, 0.2)  # 5Hz
+        gps_rec_buffer = []
         gps_com.rec_data(gps_rec_buffer, 138)  # int
         gps_com.close_com()
         runUI.gps_threadLock.acquire()  # 加锁

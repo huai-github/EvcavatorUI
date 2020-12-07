@@ -20,23 +20,19 @@ g_4G_COM = "com21"
 g_GPS_COM = "com5"
 
 gps_threadLock = threading.Lock()
-rectask_threadLock = threading.Lock()
-send_msg_threadLock = threading.Lock()
-heart_send_threadLock = threading.Lock()
-heart_rec_threadLock = threading.Lock()
+_4g_threadLock = threading.Lock()
 
 
 class UIFreshThread(object): 	# 界面刷新线程
 	def __init__(self):
-		rectask_threadLock.acquire()
+		_4g_threadLock.acquire()
 
-		# 减去一个初始值？？？？
-		self.startX = task.g_x1_d	 # from could  huatuquz
+		self.startX = task.g_x1_d	 # from could
 		self.startY = task.g_y1_d
 		self.endX = task.g_x2_d
 		self.endY = task.g_y2_d
 		self.Interval = 120
-		rectask_threadLock.release()
+		_4g_threadLock.release()
 
 		self.nowX = 0  # from gps
 		self.nowY = 0
@@ -172,11 +168,10 @@ if __name__ == "__main__":
 	app = QApplication(sys.argv)
 
 	gps_thread = threading.Thread(target=gps.gps_thread_fun)
-	send_msg_thread = threading.Thread(target=task.msg_send_thread_func)
-
+	_4g_thread = threading.Thread(target=task._4g_thread_func)
 	gps_thread.start()  	# 启动线程
-	sleep(1)
-	send_msg_thread.start()
+	# sleep(1)
+	_4g_thread.start()
 
 	mainWindow = MyWindows()
 	mainWindow.show()
