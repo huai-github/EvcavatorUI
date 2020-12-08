@@ -4,13 +4,9 @@ import time
 import math
 import runUI
 
-
-g_lat = [0]*8
-g_lon = [0]*8
-g_alt = [0]*8
-g_x = 0
+g_x = 0     # 高斯坐标，全局变量，double类型
 g_y = 0
-g_deep = 0
+g_h = 0
 g_worked_flag = False
 
 
@@ -55,7 +51,7 @@ class GPSINSData(object):
         self.head = [b'\xaa', b'\x33'] 	# 2B deviation 0-2     b'3' == b'\x33'
         self.length = [b'\x00']*2				# 2B deviation 4-6
         self.latitude = [b'\x00']*8  			# 8B deviation 24
-        self.longitude = [b'\x00']*8  		# 8B deviation 32
+        self.longitude = [b'\x00']*8  		    # 8B deviation 32
         self.altitude = [b'\x00']*8  			# 8B deviation 40
         self.checksum = 0	 			# 2B deviation 136
         self.xor_check = 0         		# 定义异或校验返回值
@@ -68,11 +64,6 @@ class GPSINSData(object):
             self.altitude = recbuff[40:48]
             self.checksum = recbuff[136:138]
             self.checksum = self.checksum[0] + self.checksum[1]  # 将checksum 2字节合并
-
-            global g_lat, g_lon, g_alt
-            g_lat = self.latitude
-            g_lon = self.longitude
-            g_alt = self.altitude
 
             for i in range(len(recbuff) - 2):  # 校验
                 recbuff[i] = int.from_bytes(recbuff[i], byteorder='little', signed=False)  # bytes转int
@@ -102,9 +93,9 @@ class GPSINSData(object):
         longitude = self.longitude[0] + self.longitude[1] + self.longitude[2] + self.longitude[3] + self.longitude[4] + self.longitude[5] + self.longitude[6] + self.longitude[7]
         altitude = self.altitude[0] + self.altitude[1] + self.altitude[2] + self.altitude[3] + self.altitude[4] + self.altitude[5] + self.altitude[6] + self.altitude[7]
 
-        gps_switch_lat.char = latitude
-        gps_switch_lon.char = longitude
-        gps_switch_alt.char = altitude
+        gps_switch_lat.char_8 = latitude
+        gps_switch_lon.char_8 = longitude
+        gps_switch_alt.char_8 = altitude
 
         return gps_switch_lat.double, gps_switch_lon.double, gps_switch_alt.double
 
@@ -112,23 +103,23 @@ class GPSINSData(object):
 def gps_thread_fun():
     while True:
         gps_data = GPSINSData()
-        gps_msg = LatLonAlt()
+        gps_msg_switch = LatLonAlt()
         gps_com = SerialPortCommunication(runUI.g_GPS_COM, 115200, 0.2)  # 5Hz
         gps_rec_buffer = []
         gps_com.rec_data(gps_rec_buffer, 138)  # int
         gps_com.close_com()
         runUI.gps_threadLock.acquire()  # 加锁
         gps_data.gps_msg_analysis(gps_rec_buffer)
-        gps_msg.latitude, gps_msg.longitude, gps_msg.altitude = gps_data.gps_typeswitch()
-        # print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
-        global g_x, g_y, g_deep, g_worked_flag
-        g_x, g_y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
-        g_deep = gps_msg.altitude
-        g_worked_flag = True  # 测试用
+        # 8 -> 1，得到经纬度
+        gps_msg_switch.latitude, gps_msg_switch.longitude, gps_msg_switch.altitude = gps_data.gps_typeswitch()
+        print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg_switch.latitude, gps_msg_switch.longitude, gps_msg_switch.altitude))
+        # 经纬度转高斯坐标
+        global g_x, g_y, g_h
+        g_x, g_y = LatLon2XY(gps_msg_switch.latitude, gps_msg_switch.longitude)
+        g_h = gps_msg_switch.altitude
+        print("g_x: ", g_x)
         runUI.gps_threadLock.release()      # 解锁
-
-
-    # print("x：%s\ty：%s\tdeep：%s" % (g_x, g_y, g_deep))
+        # print("x：%s\ty：%s\tdeep：%s" % (g_x, g_y, g_h))  # 高斯坐标
 
 
 ##############################################################################################################
@@ -142,15 +133,15 @@ def gps_thread_fun():
 # gps_data.gps_msg_analysis(gps_rec_buffer)
 # gps_data_ret = gps_data.gps_typeswitch()
 #
-# gps_msg = LatLonAlt()
-# gps_msg.latitude = gps_data_ret[0]
-# gps_msg.longitude = gps_data_ret[1]
-# gps_msg.altitude = gps_data_ret[2]
+# gps_msg_switch = LatLonAlt()
+# gps_msg_switch.latitude = gps_data_ret[0]
+# gps_msg_switch.longitude = gps_data_ret[1]
+# gps_msg_switch.altitude = gps_data_ret[2]
 #
-# print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg.latitude, gps_msg.longitude, gps_msg.altitude))
+# print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg_switch.latitude, gps_msg_switch.longitude, gps_msg_switch.altitude))
 #
-# x, y = LatLon2XY(gps_msg.latitude, gps_msg.longitude)
-# deep = gps_msg.altitude
+# x, y = LatLon2XY(gps_msg_switch.latitude, gps_msg_switch.longitude)
+# deep = gps_msg_switch.altitude
 # print(x)
 # print(y)
 # print(deep)

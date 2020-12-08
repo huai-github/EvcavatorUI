@@ -59,7 +59,11 @@ class SerialPortCommunication():
 		return self.com.readline()
 
 	def send_data(self, send_buffer):
-		self.com.write(send_buffer)
+		if self.com.write(send_buffer):
+			# print("Send SUCC")
+			return len(send_buffer)		# 返回字节长度
+		else:
+			print("--Send Error--")
 
 	def rec_data(self, rec_buff, rec_len, way=0):
 		"""[b'$', b'\x00', b'\x01', b'\x08', b'\x01', b'\x00', b'\x00', b'\n']"""

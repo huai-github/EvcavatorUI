@@ -42,7 +42,7 @@ class UIFreshThread(object): 	# 界面刷新线程
 		gps_threadLock.acquire()
 		self.nowX = gps.g_x - 4076000 # from gps
 		self.nowY = gps.g_y - 515000
-		self.deep = gps.g_deep
+		self.deep = gps.g_h
 
 		sleep(1)
 		gps_threadLock.release()
@@ -170,9 +170,9 @@ if __name__ == "__main__":
 	gps_thread = threading.Thread(target=gps.gps_thread_fun)
 	_4g_thread = threading.Thread(target=task._4g_thread_func)
 	gps_thread.start()  	# 启动线程
-	# sleep(1)
+	sleep(0.5)
 	_4g_thread.start()
 
-	mainWindow = MyWindows()
-	mainWindow.show()
-	sys.exit(app.exec_())
+	# mainWindow = MyWindows()
+	# mainWindow.show()
+	# sys.exit(app.exec_())
