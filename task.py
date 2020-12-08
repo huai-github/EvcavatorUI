@@ -41,6 +41,34 @@ class TimeInterval(object):
 		self.__timer = None
 
 
+class Reply(object):
+	def __init__(self):
+		self.start = 0x24
+		self.type = 0x03
+		self.id = 0x01
+		self.len = 0x08
+		self.seqnum = 0x00
+		self.reply = 0xff		# 0x00接收任务成功，0x01接收任务失败
+		self.sumcheck = 0x00
+		self.end = 0x0a
+
+	def reply_msg(self, reply):
+		reply_buffer = [0x00] * 8
+		reply_buffer[0] = self.start
+		reply_buffer[1] = self.type
+		reply_buffer[2] = self.id
+		reply_buffer[3] = self.len
+		self.seqnum = self.seqnum + 0x01
+		if self.seqnum > 0xff:
+			self.seqnum = 0x01
+		reply_buffer[4] = self.seqnum
+		reply_buffer[5] = reply
+		self.sumcheck = sum(reply_buffer[0:6])
+		reply_buffer[6] = self.sumcheck
+		reply_buffer[7] = self.end
+		return reply_buffer
+
+
 class SendHeadStruct(object):
 	def __init__(self):
 		self.start = 0x24
@@ -56,9 +84,9 @@ class SendHeadStruct(object):
 class SendBodyStruct(object):
 	def __init__(self):
 		self.start = 0x24
-		self.type = 0x01  # 数据类型
-		self.id = 0x00  # 挖掘机编号
-		self.len = 0x28  # 数据包中长度
+		self.type = 0x01  	# 数据类型
+		self.id = 0x00  	# 挖掘机编号
+		self.len = 0x28  	# 数据包中长度
 		self.seqnum = 0x00  # 包序列号
 		self.x = [0] * 8  # 8B
 		self.y = [0] * 8  # 8B
@@ -111,6 +139,7 @@ def send_msg_func(com, headStruct, bodyStruct):
 	h_list = h_to_could_union.char_8
 
 	send_body_buf[5:13] = x_list
+	# 36, 1, 0, 40, 7, 255, 12, 89, 100, 70, 25, 79, 65, 113, 167, 129, 192, 226, 114, 31, 65, 233, 72, 46, 255, 33, 221, 61, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 241, 10
 	send_body_buf[13:21] = y_list
 	send_body_buf[21:29] = h_list
 	send_body_buf[29:38] = body.reserved
@@ -203,7 +232,7 @@ class Heart(object):
 		send_heart_buff[3] = self.len
 		Heart.s_seqnum = Heart.s_seqnum + 0x01
 		if Heart.s_seqnum > 0xff:
-			Heart.s_seqnum = 0x00
+			Heart.s_seqnum = 0x01
 		send_heart_buff[4] = Heart.s_seqnum
 		if self.__ack_flag:
 			self.__ack_flag = False
@@ -217,6 +246,7 @@ def _4g_thread_func():
 	com_4g = serialport.SerialPortCommunication(runUI.g_4G_COM, 115200, 0.5)
 	task = RecTask()
 	heart = Heart()
+	reply = Reply()
 	x1_union = TypeSwitchUnion()
 	y1_union = TypeSwitchUnion()
 	h1_union = TypeSwitchUnion()
@@ -228,10 +258,10 @@ def _4g_thread_func():
 	head = SendHeadStruct()
 	body = SendBodyStruct()
 	# 间隔一分钟发送一次心跳
-	# start = datetime.now().replace(minute=0, second=0, microsecond=0)
-	# minute = TimeInterval(start, 2, heart.send_heart, [com_4g])
-	# minute.start()
-	# minute.cancel()
+	start = datetime.now().replace(minute=0, second=0, microsecond=0)
+	minute = TimeInterval(start, 2, heart.send_heart, [com_4g])
+	minute.start()
+	minute.cancel()
 
 	while True:
 		recbuff = com_4g.read_line()  # 读到回车停止
@@ -256,10 +286,16 @@ def _4g_thread_func():
 				g_h2_d = h2_union.int
 				g_w2_s = w2_union.short
 				runUI._4g_threadLock.release()		# 解锁
-				print("rec task")
+				# print("rec task")
+				# 回复上位机接收成功
+				reply_buff = reply.reply_msg(0x00)
+				com_4g.send_data(reply_buff)
 
 		else:
 			print("\r\nhead error!!!\r\n")
+			# 回复上位机接收失败
+			reply_buff = reply.reply_msg(0x01)
+			com_4g.send_data(reply_buff)
 
 		send_msg_func(com_4g, head, body)			# 发送gps信息给上位机
 
