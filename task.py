@@ -166,38 +166,52 @@ class RecTask(object):
 		self.end = 0x0a
 
 	def task_msg_analysis(self, recbuff):
+		"""保存接收到数据，校验"""
 		self.id = recbuff[2]
 		self.len = recbuff[3]
 		self.seqnum = recbuff[4]
-		self.baseHeight = recbuff[5:7]  # baseHeight 2B
+		self.baseHeight = recbuff[5:7]		  	# baseHeight 2B
 		self.sectionNum = recbuff[7]
-		self.section = recbuff[8:-2]  # section为索引: 8--倒数第2位（不包含倒数第二位）
-		self.sumcheck = sum(recbuff[0:-2])  # 计算校验位
-		self.sumcheck = self.sumcheck & 0xff  # 取sumcheck的最低字节
-		if self.sumcheck != recbuff[-2]:  # 计算出的校验位不等于接受到的校验位
+		self.section = recbuff[8:-2]  			# section为索引: 8--倒数第2位（不包含倒数第二位）
+		self.sumcheck = sum(recbuff[0:-2]) 		# 计算校验位
+		self.sumcheck = self.sumcheck & 0xff  	# 取sumcheck的最低字节
+		if self.sumcheck != recbuff[-2]:  		# 计算出的校验位不等于接收到的校验位
 			print("\r\ncheck error!!!\r\n")
+			# 发送给上位机校验错误消息
 		else:
 			self.sumcheck = recbuff[-2]
 		self.end = recbuff[-1]
 
 	def base_height(self):
+		"""得到基准高"""
 		base_height_union = TypeSwitchUnion()
 		base_height_union.char_2 = self.baseHeight
 		return base_height_union.short
 
-	def section_analysis(self):		# 可能有问题？？？
-		for i in range(0, len(self.section), 54):
-			no = self.section[(i + 0):(i + 2)]
-			x1 = self.section[(i + 2):(i + 10)]
-			y1 = self.section[(i + 10):(i + 18)]
-			h1 = self.section[(i + 18):(i + 26)]
-			w1 = self.section[(i + 26):(i + 28)]
-			x2 = self.section[(i + 28):(i + 36)]
-			y2 = self.section[(i + 36):(i + 44)]
-			h2 = self.section[(i + 44):(i + 52)]
-			w2 = self.section[(i + 52):(i + 54)]  # 0-53共54B
+	def section_analysis(self, line_n):
+		"""
+		得到指定的直线段
+		line_n: 哪一个直线段
+		"""
 
-			return no, x1, y1, h1, w1, x2, y2, h2, w2  # return在循环里面,每一次返回一次
+		lines = [self.section[i:i+54] for i in range(self.sectionNum)]  # 一个直线段作为list的一个元素 [line1,line2,...]
+		# lines: [
+		# 	b'\x00\x01?kU\xb0\x86hB@\xe0R\xcc\x84\xf1J]@\xe9H.\xff!\xdd=@\x14\x14?kU\xb0\x86hB@\xe0R\xcc\x84\xf1J]@\xe9H.\xff!\xdd=@\xaa\xbb',
+		# 	b'\x01?kU\xb0\x86hB@\xe0R\xcc\x84\xf1J]@\xe9H.\xff!\xdd=@\x14\x14?kU\xb0\x86hB@\xe0R\xcc\x84\xf1J]@\xe9H.\xff!\xdd=@\xaa\xbb\x00'
+		# 	]
+		if line_n > self.sectionNum:
+			print()
+		else:
+			no = lines[line_n][0:2]
+			x1 = lines[line_n][2:10]
+			y1 = lines[line_n][10:18]
+			h1 = lines[line_n][18:26]
+			w1 = lines[line_n][26:28]
+			x2 = lines[line_n][28:36]
+			y2 = lines[line_n][36:44]
+			h2 = lines[line_n][44:52]
+			w2 = lines[line_n][52:54]  # 0-53共54Bytes
+			return no, x1, y1, h1, w1, x2, y2, h2, w2
 
 
 class Heart(object):
@@ -266,16 +280,25 @@ def _4g_thread_func():
 	while True:
 		recbuff = com_4g.read_line()  # 读到回车停止
 		# b'$\x02\x01\xff\x01\xa1\xa2\x01\x00\x01?kU\xb0\x86hB@\xe0R\xcc\x84\xf1J]@\xe9H.\xff!\xdd=@\x14\x14?kU\xb0\x86hB@\xe0R\xcc\x84\xf1J]@\xe9H.\xff!\xdd=@\xaa\xbb\x9d\n'
-		if recbuff[0] == 0x24:  # 判断数据包头是否正确
+		if recbuff[0] == 0x24:  	# 判断数据包头是否正确
 			if recbuff[1] == 0x00:  # 心跳包
 				# 解析心跳包
 				heart.heart_msg_analysis(recbuff)
 
 			if recbuff[1] == 0x02:  # 任务包
+				line_num = 0x01		# 工作直线段
+
 				runUI._4g_threadLock.acquire()		# 加锁
-				task.task_msg_analysis(recbuff)
+				task.task_msg_analysis(recbuff)		# 保存数据，校验
+				# 获取一个直线段
 				no, x1_union.char_8, y1_union.char_8, h1_union.char_8, w1_union.char_8, \
-				x2_union.char_8, y2_union.char_8, h2_union.char_8, w2_union.char_8 = task.section_analysis()  # 返回一个直线段
+					x2_union.char_8, y2_union.char_8, h2_union.char_8, w2_union.char_8 = task.section_analysis(line_num)
+				if gps.g_line_worked_flag:
+					line_num += 0x01
+					if line_num > task.sectionNum:
+						# 说明本次接收的任务全部完成，请求上位机发送新任务
+						pass
+
 				global g_x1_d, g_y1_d, g_h1_d, g_w1_s, g_x2_d, g_y2_d, g_h2_d, g_w2_s
 				g_x1_d = x1_union.int
 				g_y1_d = y1_union.int
@@ -286,23 +309,15 @@ def _4g_thread_func():
 				g_h2_d = h2_union.int
 				g_w2_s = w2_union.short
 				runUI._4g_threadLock.release()		# 解锁
-				# print("rec task")
+
 				# 回复上位机接收成功
 				reply_buff = reply.reply_msg(0x00)
 				com_4g.send_data(reply_buff)
-
 		else:
 			print("\r\nhead error!!!\r\n")
 			# 回复上位机接收失败
 			reply_buff = reply.reply_msg(0x01)
 			com_4g.send_data(reply_buff)
 
-		send_msg_func(com_4g, head, body)			# 发送gps信息给上位机
+		# send_msg_func(com_4g, head, body)			# 发送gps信息给上位机
 
-
-##############################################################################################################
-# if __name__ == "__main__":
-# 	gps.gps_thread_fun()
-# 	if gps.g_worked_flag:
-# 		gps.g_worked_flag = False
-# 	msg_send_thread_func()

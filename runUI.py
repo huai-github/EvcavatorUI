@@ -169,7 +169,7 @@ if __name__ == "__main__":
 
 	gps_thread = threading.Thread(target=gps.gps_thread_fun)
 	_4g_thread = threading.Thread(target=task._4g_thread_func)
-	gps_thread.start()  	# 启动线程
+	# gps_thread.start()  	# 启动线程
 	sleep(0.5)
 	_4g_thread.start()
 

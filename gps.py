@@ -7,7 +7,8 @@ import runUI
 g_x = 0     # 高斯坐标，全局变量，double类型
 g_y = 0
 g_h = 0
-g_worked_flag = False
+g_line_worked_flag = False  # 本直线段工作完成标志
+g_deep_worked_flag = False  # 挖完一斗
 
 
 def LatLon2XY(latitude, longitude):
