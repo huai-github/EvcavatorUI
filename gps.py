@@ -63,13 +63,13 @@ class GPSINSData(object):
             self.latitude = recbuff[24:32]
             self.longitude = recbuff[32:40]
             self.altitude = recbuff[40:48]
+
             self.checksum = recbuff[136:138]
             self.checksum = self.checksum[0] + self.checksum[1]  # 将checksum 2字节合并
 
-            for i in range(len(recbuff) - 2):  # 校验
+            for i in range(len(recbuff) - 2):  # 计算校验值
                 recbuff[i] = int.from_bytes(recbuff[i], byteorder='little', signed=False)  # bytes转int
                 self.xor_check = self.xor_check ^ recbuff[i]
-
             self.xor_check = self.xor_check.to_bytes(length=2, byteorder='little', signed=False)
 
             if self.xor_check == self.checksum:  # 数据包异或校验通过
@@ -80,6 +80,7 @@ class GPSINSData(object):
                     pass
             else:
                 print("checksum error!!!\r\n")
+                pass
                 return
         else:
             print("data head error!!!\r\n")
@@ -118,31 +119,6 @@ def gps_thread_fun():
         global g_x, g_y, g_h
         g_x, g_y = LatLon2XY(gps_msg_switch.latitude, gps_msg_switch.longitude)
         g_h = gps_msg_switch.altitude
-        print("g_x: ", g_x)
         runUI.gps_threadLock.release()      # 解锁
         # print("x：%s\ty：%s\tdeep：%s" % (g_x, g_y, g_h))  # 高斯坐标
 
-
-##############################################################################################################
-# runUI.g_GPS_COM = "com21"
-# # if __name__ == "__main__":
-# gps_rec_buffer = []
-# gps_data = GPSINSData()
-# gps_com = SerialPortCommunication(runUI.g_GPS_COM, 115200, 0.5)
-# gps_com.rec_data(gps_rec_buffer, 138)  # int
-# print(gps_rec_buffer)
-# gps_data.gps_msg_analysis(gps_rec_buffer)
-# gps_data_ret = gps_data.gps_typeswitch()
-#
-# gps_msg_switch = LatLonAlt()
-# gps_msg_switch.latitude = gps_data_ret[0]
-# gps_msg_switch.longitude = gps_data_ret[1]
-# gps_msg_switch.altitude = gps_data_ret[2]
-#
-# print("纬度：%s\t经度：%s\t海拔：%s\t" % (gps_msg_switch.latitude, gps_msg_switch.longitude, gps_msg_switch.altitude))
-#
-# x, y = LatLon2XY(gps_msg_switch.latitude, gps_msg_switch.longitude)
-# deep = gps_msg_switch.altitude
-# print(x)
-# print(y)
-# print(deep)

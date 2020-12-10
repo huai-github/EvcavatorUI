@@ -40,10 +40,9 @@ class UIFreshThread(object): 	# 界面刷新线程
 
 	def __call__(self):  # 调用实例本身 ——>> MyThread(self.__thread,....
 		gps_threadLock.acquire()
-		self.nowX = gps.g_x - 4076000 # from gps
+		self.nowX = gps.g_x - 4076000	# from gps
 		self.nowY = gps.g_y - 515000
-		self.deep = gps.g_h
-
+		self.deep = gps.g_h 	# - 基准高 baseHeight from could
 		sleep(1)
 		gps_threadLock.release()
 
@@ -169,7 +168,7 @@ if __name__ == "__main__":
 
 	gps_thread = threading.Thread(target=gps.gps_thread_fun)
 	_4g_thread = threading.Thread(target=task._4g_thread_func)
-	# gps_thread.start()  	# 启动线程
+	gps_thread.start()  	# 启动线程
 	sleep(0.5)
 	_4g_thread.start()
 
